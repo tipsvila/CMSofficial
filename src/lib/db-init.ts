@@ -1,0 +1,173 @@
+import { client } from './db'
+
+const TABLES = [
+  `CREATE TABLE IF NOT EXISTS aviation_contracts_staging (
+    id TEXT PRIMARY KEY,
+    award_id_piid TEXT NOT NULL UNIQUE,
+    recipient_name TEXT NOT NULL,
+    total_obligated_amount REAL NOT NULL DEFAULT 0,
+    period_of_performance_current_end_date TEXT,
+    naics_description TEXT,
+    product_or_service_code_description TEXT,
+    awarding_agency_name TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS contractors (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    uei TEXT,
+    duns TEXT,
+    address TEXT,
+    city TEXT,
+    state TEXT,
+    zip_code TEXT,
+    phone TEXT,
+    website TEXT,
+    contracting_tier TEXT DEFAULT 'Free',
+    notes TEXT,
+    aviation_contract_id TEXT,
+    email_1 TEXT,
+    email_2 TEXT,
+    email_3 TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS contacts (
+    id TEXT PRIMARY KEY,
+    contractor_id TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    title TEXT,
+    email TEXT,
+    phone TEXT,
+    is_primary INTEGER DEFAULT 0,
+    aviation_contract_id TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS outreach (
+    id TEXT PRIMARY KEY,
+    contractor_id TEXT NOT NULL,
+    contact_id TEXT,
+    aviation_contract_id TEXT,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    priority TEXT NOT NULL DEFAULT 'Medium',
+    subject TEXT,
+    notes TEXT,
+    interaction_date TEXT,
+    follow_up_date TEXT,
+    sent_date TEXT,
+    inquiry_id TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS compliance (
+    id TEXT PRIMARY KEY,
+    contractor_id TEXT NOT NULL,
+    aviation_contract_id TEXT,
+    type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    requirement TEXT NOT NULL,
+    documentation TEXT,
+    expiry_date TEXT,
+    last_audit_date TEXT,
+    next_audit_date TEXT,
+    risk_level TEXT DEFAULT 'Medium',
+    priority INTEGER DEFAULT 0,
+    scope TEXT DEFAULT 'Contract',
+    notes TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS inquiries (
+    id TEXT PRIMARY KEY,
+    inquiry_id TEXT NOT NULL UNIQUE,
+    part_number TEXT NOT NULL,
+    part_description TEXT,
+    contractor_id TEXT NOT NULL,
+    aviation_contract_id TEXT,
+    status TEXT NOT NULL DEFAULT 'Draft',
+    notes TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS rfqs (
+    id TEXT PRIMARY KEY,
+    rfq_number TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    part_number TEXT NOT NULL,
+    part_description TEXT,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'Draft',
+    aog_flag INTEGER DEFAULT 0,
+    contractor_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    order_number TEXT NOT NULL UNIQUE,
+    rfq_id TEXT NOT NULL,
+    quote_id TEXT NOT NULL,
+    contractor_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    total_amount REAL NOT NULL DEFAULT 0,
+    tax_amount REAL DEFAULT 0,
+    shipping_amount REAL DEFAULT 0,
+    currency TEXT DEFAULT 'USD',
+    payment_status TEXT DEFAULT 'Unpaid',
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS company_settings (
+    id TEXT PRIMARY KEY,
+    company_name TEXT DEFAULT 'INTAEROBASE',
+    tagline TEXT DEFAULT 'Aviation Federal Contract Management',
+    address TEXT,
+    city TEXT,
+    state TEXT,
+    zip_code TEXT,
+    country TEXT DEFAULT 'US',
+    phone TEXT,
+    email TEXT,
+    website TEXT,
+    logo_url TEXT,
+    uei TEXT,
+    cage_code TEXT,
+    naics_codes TEXT,
+    tax_id TEXT,
+    sam_registration INTEGER DEFAULT 0,
+    capabilities TEXT,
+    default_currency TEXT DEFAULT 'USD',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT,
+    entity_id TEXT,
+    entity_type TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
+]
+
+export async function initDatabase(): Promise<{ success: boolean; tables: number }> {
+  let tables = 0
+  for (const sql of TABLES) {
+    await client.execute(sql)
+    tables++
+  }
+  return { success: true, tables }
+}
