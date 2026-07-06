@@ -2,20 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { aviationContracts, contractors, outreach, compliance, inquiries, rfqs, orders, notifications } from '@/lib/schema'
 import { eq, count, sum, sql } from 'drizzle-orm'
-import { initDatabase } from '@/lib/db-init'
-import { seedDatabase } from '@/lib/seed'
-
-let initialized = false
-
-async function ensureDb() {
-  if (initialized) return
-  await initDatabase()
-  const existing = await db.select().from(contractors).limit(1)
-  if (existing.length === 0) {
-    await seedDatabase()
-  }
-  initialized = true
-}
+import { ensureDb } from '@/lib/db-ready'
 
 export async function GET() {
   try {

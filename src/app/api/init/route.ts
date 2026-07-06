@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
-import { initDatabase } from '@/lib/db-init'
-import { seedDatabase } from '@/lib/seed'
+import { ensureDb } from '@/lib/db-ready'
 
-export async function GET() {
+export async function POST() {
   try {
-    const init = await initDatabase()
-    const seed = await seedDatabase()
-    return NextResponse.json({ init, seed })
+    await ensureDb()
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('GET /api/init error:', error)
+    console.error('POST /api/init error:', error)
     return NextResponse.json({ error: 'Init failed' }, { status: 500 })
   }
 }

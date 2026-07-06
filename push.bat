@@ -4,10 +4,11 @@ echo   INTAEROBASE Git Push
 echo ========================================
 echo.
 echo Select account:
-echo   1. hfaisalfarooq (Vercel connected)
-echo   2. atibapk
+echo   1. tipsvila (Vercel connected)
+echo   2. hfaisalfarooq
+echo   3. atibapk
 echo.
-set /p choice=Enter choice (1 or 2):
+set /p choice=Enter choice (1, 2 or 3):
 
 if "%choice%"=="1" (
     echo.
@@ -23,7 +24,7 @@ if "%choice%"=="1" (
     git config user.email "hfaisalfarooq@gmail.com"
     git remote set-url origin https://github.com/hfaisalfarooq/IABofficial.git
     set REPO_NAME=IABofficial
-) else if "%choice%"=="2" (
+) else if "%choice%"=="3" (
     echo.
     echo Switching to atibapk...
     git config user.name "atibapk-3401"

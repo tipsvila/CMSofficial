@@ -137,16 +137,50 @@ const TABLES = [
     zip_code TEXT,
     country TEXT DEFAULT 'US',
     phone TEXT,
+    phone_alt TEXT,
     email TEXT,
     website TEXT,
     logo_url TEXT,
+    logo_size INTEGER DEFAULT 36,
+    favicon_url TEXT,
     uei TEXT,
     cage_code TEXT,
     naics_codes TEXT,
     tax_id TEXT,
+    duns TEXT,
     sam_registration INTEGER DEFAULT 0,
     capabilities TEXT,
+    core_capabilities TEXT,
+    certifications TEXT,
+    compliance_frameworks TEXT,
+    naics_descriptions TEXT,
+    service_highlights TEXT,
+    why_choose_us TEXT,
+    sam_gov_status TEXT,
+    registration_purpose TEXT,
+    owner_name TEXT,
     default_currency TEXT DEFAULT 'USD',
+    smtp_from_name TEXT,
+    smtp_from_email TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS capabilities (
+    id TEXT PRIMARY KEY,
+    contractor_id TEXT,
+    category TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'Active',
+    certification_level TEXT,
+    expiry_date TEXT,
+    naics_code TEXT,
+    aircraft_types TEXT,
+    part_numbers TEXT,
+    estimated_value REAL DEFAULT 0,
+    priority TEXT DEFAULT 'Medium',
+    notes TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
@@ -169,5 +203,28 @@ export async function initDatabase(): Promise<{ success: boolean; tables: number
     await client.execute(sql)
     tables++
   }
+
+  // Add missing columns if they don't exist
+  const ALTERS = [
+    `ALTER TABLE company_settings ADD COLUMN phone_alt TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN logo_size INTEGER DEFAULT 36`,
+    `ALTER TABLE company_settings ADD COLUMN core_capabilities TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN certifications TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN compliance_frameworks TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN naics_descriptions TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN service_highlights TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN why_choose_us TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN sam_gov_status TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN registration_purpose TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN owner_name TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN favicon_url TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN duns TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN smtp_from_name TEXT`,
+    `ALTER TABLE company_settings ADD COLUMN smtp_from_email TEXT`,
+  ]
+  for (const sql of ALTERS) {
+    try { await client.execute(sql) } catch { /* column already exists */ }
+  }
+
   return { success: true, tables }
 }

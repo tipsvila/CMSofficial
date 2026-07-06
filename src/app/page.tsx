@@ -31,8 +31,8 @@ export default function DashboardPage() {
 
   const stats = data.stats
   const compliance = stats.compliance || {}
-  const totalCompliance = Object.values(compliance).reduce((a, b) => a + b, 0)
-  const compliantCount = compliance['Compliant'] || 0
+  const totalCompliance = Object.values(compliance).reduce((a, b) => a + Number(b), 0)
+  const compliantCount = Number(compliance['Compliant'] || 0)
   const compliancePct = totalCompliance > 0 ? Math.round((compliantCount / totalCompliance) * 100) : 0
 
   return (
@@ -101,11 +101,13 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="space-y-3">
-            {(data.agencySummary || []).map((agency, i) => {
-              const maxTotal = Math.max(...(data.agencySummary || []).map(a => a.total))
-              const pct = maxTotal > 0 ? (agency.total / maxTotal) * 100 : 0
-              return (
-                <div key={i}>
+            {(() => {
+              const agencies = data.agencySummary || []
+              const maxTotal = agencies.length > 0 ? Math.max(...agencies.map(a => a.total)) : 0
+              return agencies.map((agency) => {
+                const pct = maxTotal > 0 ? (agency.total / maxTotal) * 100 : 0
+                return (
+                <div key={agency.agency}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[13px] text-[var(--text-primary)] truncate max-w-[220px]">{agency.agency}</span>
                     <span className="text-[13px] font-bold text-[var(--primary)]">{formatCurrency(agency.total)}</span>
@@ -115,7 +117,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )
-            })}
+            })
+            })()}
             {(!data.agencySummary || data.agencySummary.length === 0) && (
               <p className="text-[var(--text-muted)] text-[13px] py-4 text-center">No agency data yet</p>
             )}
@@ -133,14 +136,17 @@ export default function DashboardPage() {
         </div>
         <DataTable
           columns={[
-            { key: 'contractor', label: 'Company', render: (row) => (row.contractor as Record<string, unknown>)?.name as string || '-' },
+            { key: 'contractor', label: 'Company', render: (row) => {
+              const c = row.contractor as Record<string, unknown> | undefined
+              return (c?.name as string) || '-'
+            }},
             { key: 'status', label: 'Status', render: (row) => (
               <Badge variant={row.status === 'Sent' ? 'success' : row.status === 'Pending' ? 'warning' : row.status === 'Follow-Up' ? 'info' : 'default'}>
-                {row.status as string}
+                {String(row.status)}
               </Badge>
             )},
             { key: 'priority', label: 'Priority' },
-            { key: 'createdAt', label: 'Date', render: (row) => formatDate(row.createdAt as string) },
+            { key: 'createdAt', label: 'Date', render: (row) => formatDate(String(row.createdAt)) },
           ]}
           data={(data.recentOutreach as unknown as Record<string, unknown>[]) || []}
         />

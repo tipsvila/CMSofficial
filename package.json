@@ -10,10 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.4.0",
     "@libsql/client": "^0.17.4",
     "clsx": "^2.1.1",
-    "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
@@ -21,9 +19,7 @@
     "next": "15.5.20",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-hook-form": "^7.80.0",
-    "tailwind-merge": "^3.6.0",
-    "zod": "^4.4.3"
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

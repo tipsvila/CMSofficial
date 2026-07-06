@@ -1,31 +1,77 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { companySettings } from '@/lib/schema'
-import { initDatabase } from '@/lib/db-init'
-import { seedDatabase } from '@/lib/seed'
-
-let initialized = false
-
-async function ensureDb() {
-  if (initialized) return
-  await initDatabase()
-  const existing = await db.select().from(companySettings).limit(1)
-  if (existing.length === 0) {
-    await seedDatabase()
-  }
-  initialized = true
-}
+import { ensureDb } from '@/lib/db-ready'
+import { clearSettingsCache } from '@/lib/company-settings'
+import { eq } from 'drizzle-orm'
 
 export async function GET() {
   try {
     await ensureDb()
     const settings = await db.select().from(companySettings).limit(1)
     if (settings.length === 0) {
-      return NextResponse.json({ companyName: 'INTAEROBASE', tagline: 'Aviation CMS' })
+      return NextResponse.json({ success: true, data: { companyName: 'INTAEROBASE', tagline: 'Aviation CMS' } })
     }
-    return NextResponse.json(settings[0])
+    return NextResponse.json({ success: true, data: settings[0] })
   } catch (error) {
     console.error('GET /api/settings error:', error)
-    return NextResponse.json({ companyName: 'INTAEROBASE', tagline: 'Aviation CMS' })
+    return NextResponse.json({ success: true, data: { companyName: 'INTAEROBASE', tagline: 'Aviation CMS' } })
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    await ensureDb()
+    const body = await request.json()
+
+    const existing = await db.select().from(companySettings).limit(1)
+    const now = new Date().toISOString()
+
+    if (existing.length > 0) {
+      await db.update(companySettings)
+        .set({
+          companyName: body.companyName,
+          tagline: body.tagline,
+          address: body.address,
+          city: body.city,
+          state: body.state,
+          zipCode: body.zipCode,
+          country: body.country,
+          phone: body.phone,
+          phoneAlt: body.phoneAlt,
+          email: body.email,
+          website: body.website,
+          logoUrl: body.logoUrl,
+          logoSize: body.logoSize,
+          faviconUrl: body.faviconUrl,
+          uei: body.uei,
+          cageCode: body.cageCode,
+          naicsCodes: body.naicsCodes,
+          taxId: body.taxId,
+          duns: body.duns,
+          samRegistration: body.samRegistration,
+          capabilities: body.capabilities,
+          coreCapabilities: body.coreCapabilities,
+          certifications: body.certifications,
+          complianceFrameworks: body.complianceFrameworks,
+          naicsDescriptions: body.naicsDescriptions,
+          serviceHighlights: body.serviceHighlights,
+          whyChooseUs: body.whyChooseUs,
+          samGovStatus: body.samGovStatus,
+          registrationPurpose: body.registrationPurpose,
+          ownerName: body.ownerName,
+          defaultCurrency: body.defaultCurrency,
+          smtpFromName: body.smtpFromName,
+          smtpFromEmail: body.smtpFromEmail,
+          updatedAt: now,
+        })
+        .where(eq(companySettings.id, existing[0].id))
+    }
+
+    clearSettingsCache()
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('PUT /api/settings error:', error)
+    return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
   }
 }

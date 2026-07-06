@@ -2,7 +2,9 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import Image from 'next/image'
+import { LayoutDashboard, Menu, X, ChevronLeft, ChevronRight, Award, Settings } from 'lucide-react'
+import { useSettings } from '@/lib/settings-context'
 
 interface NavItem { name: string; href: string; icon: React.ComponentType<{ size?: number; className?: string }> }
 interface NavGroup { title: string; items: NavItem[] }
@@ -11,23 +13,34 @@ const navigation: NavGroup[] = [
   { title: 'Dashboards', items: [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   ]},
+  { title: 'Operations', items: [
+    { name: 'Capabilities', href: '/capabilities', icon: Award },
+  ]},
+  { title: 'System', items: [
+    { name: 'Settings', href: '/settings', icon: Settings },
+  ]},
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { settings } = useSettings()
   const [expanded, setExpanded] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [companyName, setCompanyName] = useState('INTAEROBASE')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-width', expanded ? '260px' : '4.5rem')
-  }, [expanded])
-
-  useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then(d => {
-      if (d.companyName) setCompanyName(d.companyName)
-    }).catch(() => {})
+    setMounted(true)
+    try {
+      const saved = localStorage.getItem('sidebarExpanded')
+      if (saved !== null) setExpanded(saved === 'true')
+    } catch {}
   }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    document.documentElement.style.setProperty('--sidebar-width', expanded ? '260px' : '4.5rem')
+    try { localStorage.setItem('sidebarExpanded', String(expanded)) } catch {}
+  }, [expanded, mounted])
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
@@ -42,13 +55,15 @@ export function Sidebar() {
       {mobileOpen && <div className="lg:hidden fixed inset-0 z-40 bg-black/40" onClick={() => setMobileOpen(false)} />}
 
       <aside suppressHydrationWarning className={`sidebar lg:hidden ${mobileOpen ? 'mobile-open' : ''}`}>
-        <SidebarContent companyName={companyName} isActive={isActive} />
+        <SidebarContent companyName={settings.companyName} tagline={settings.tagline} logoUrl={settings.logoUrl} logoSize={settings.logoSize} isActive={isActive} />
       </aside>
 
-      {!expanded && (
+      {mounted && !expanded && (
         <aside suppressHydrationWarning className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col items-center bg-[var(--sidebar-bg)] border-r border-[var(--border-color)]" style={{ width: '4.5rem' }}>
-          <Link href="/" className="flex items-center justify-center w-full h-14 shrink-0" title={companyName}>
-            <div className="w-9 h-9 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>
+          <Link href="/" className="flex items-center justify-center w-full h-14 shrink-0" title={settings.companyName}>
+          <div className="rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ width: settings.logoSize || 36, height: settings.logoSize || 36 }}>
+            {settings.logoUrl ? <Image src={settings.logoUrl} alt={settings.companyName} width={settings.logoSize || 36} height={settings.logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>}
+          </div>
           </Link>
           <nav className="flex-1 overflow-y-auto w-full px-2 py-2 space-y-1">
             {navigation.map((g) => g.items.map((item) => (
@@ -66,26 +81,28 @@ export function Sidebar() {
         </aside>
       )}
 
-      {expanded && (
+      {mounted && expanded && (
         <aside suppressHydrationWarning className="hidden lg:flex fixed inset-y-0 left-0 z-40 bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] flex-col" style={{ width: '260px' }}>
-          <SidebarContent companyName={companyName} isActive={isActive} onCollapse={() => setExpanded(false)} />
+          <SidebarContent companyName={settings.companyName} tagline={settings.tagline} logoUrl={settings.logoUrl} logoSize={settings.logoSize} isActive={isActive} onCollapse={() => setExpanded(false)} />
         </aside>
       )}
     </>
   )
 }
 
-function SidebarContent({ companyName, isActive, onCollapse }: {
-  companyName: string; isActive: (href: string) => boolean; onCollapse?: () => void
+function SidebarContent({ companyName, tagline, logoUrl, logoSize, isActive, onCollapse }: {
+  companyName: string; tagline?: string; logoUrl?: string; logoSize?: number; isActive: (href: string) => boolean; onCollapse?: () => void
 }) {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between px-5 py-4 shrink-0 border-b border-[var(--border-color)]">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>
+          <div className="rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ width: logoSize || 36, height: logoSize || 36 }}>
+            {logoUrl ? <Image src={logoUrl} alt={companyName} width={logoSize || 36} height={logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>}
+          </div>
           <div>
             <span className="font-bold text-[15px] text-[var(--text-primary)]">{companyName}</span>
-            <p className="text-[10px] text-[var(--text-muted)] leading-tight">Aviation CMS</p>
+            <p className="text-[10px] text-[var(--text-muted)] leading-tight truncate max-w-[140px]">{tagline || 'Aviation CMS'}</p>
           </div>
         </Link>
         {onCollapse && (

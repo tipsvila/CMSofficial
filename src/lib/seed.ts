@@ -259,7 +259,7 @@ export async function seedDatabase(): Promise<{ success: boolean; counts: Record
 
   // 8. Company Settings
   await client.execute({
-    sql: `INSERT OR IGNORE INTO company_settings (id, company_name, tagline, address, city, state, zip_code, country, phone, email, website, logo_url, uei, cage_code, naics_codes, sam_registration, capabilities, default_currency, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+    sql: `INSERT OR IGNORE INTO company_settings (id, company_name, tagline, address, city, state, zip_code, country, phone, phone_alt, email, website, logo_url, logo_size, uei, cage_code, naics_codes, tax_id, duns, sam_registration, capabilities, core_capabilities, certifications, compliance_frameworks, naics_descriptions, service_highlights, why_choose_us, sam_gov_status, registration_purpose, owner_name, default_currency, smtp_from_name, smtp_from_email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       uid(),
       'INTAEROBASE',
@@ -270,21 +270,80 @@ export async function seedDatabase(): Promise<{ success: boolean; counts: Record
       '75300',
       'PK',
       '+92-300-1234567',
-      'admin@intaerobase.com',
+      '',
+      'sales@intaerobase.com',
       'https://intaerobase.com',
       '/logo.svg',
+      48,
       'RKCQQ94X66D5',
       'STLX0',
       '423860, 488190, 518210, 541512',
-      'IT-Enabled Services, Aviation Supply Chain, Defense Logistics, Federal Contract Management',
+      '4220148367751',
+      '',
+      'IT-Enabled Services (ITeS), Aviation Supply Chain Facilitation, Defense Logistics, Federal Contract Management, Parts Sourcing & Procurement, Compliance CMS Architecture, Data Processing & Computer Systems Design',
+      '',
+      '',
+      '',
+      '',
+      JSON.stringify([["Compliance","FAA 8130-3, AS9120/9110, FAR/DFARS aligned"],["Sourcing","OEM and PMA parts with global logistics network"],["Traceability","Complete chain-of-custody and CoC documentation"],["Reach","SAM.gov registered, DLA CAGE certified"],["Quality","Strictest alignment with FAA Form 8130-3 standards"],["IT Services","Data processing, systems design, web infrastructure"]]),
+      JSON.stringify(["SAM.gov registered entity with active CAGE code","FAA Form 8130-3 and AS9120 compliant quality systems","End-to-end contract management CMS with real-time tracking","Global aviation parts sourcing network with full traceability","FAR/DFARS, CMMC, and ITAR compliance ready","Dedicated defense logistics support with NATO standards","Data-driven price intelligence and anomaly detection","Automated RFQ matching and quote management"]),
+      'Submitted Registration',
+      'All Awards',
+      'Hafiz Faisal Farooq',
       'USD',
+      'INTAEROBASE',
+      'sales@intaerobase.com',
       now(),
       now(),
     ],
   })
   counts.companySettings = 1
 
-  // 9. Notifications
+  // 9. Capabilities (Aviation services converted from PostgreSQL)
+  const CAPABILITIES_DATA = [
+    { category: 'MRO', name: 'Heavy Maintenance Check (C-Check)', description: 'Full C-Check maintenance for narrow-body aircraft including structural inspection, systems testing, and component overhaul', contractorId: contractorIds[0], naics: '336413', aircraft: 'B737, B757, A320', certLevel: 'FAA Part 145', estValue: 2500000 },
+    { category: 'MRO', name: 'Line Maintenance Services', description: 'AOG response and routine line maintenance at major hub airports', contractorId: contractorIds[1], naics: '336413', aircraft: 'B787, B777, A350', certLevel: 'EASA Part 145', estValue: 1800000 },
+    { category: 'Manufacturing', name: 'Precision CNC Machining', description: '5-axis CNC machining of flight-critical titanium and Inconel components', contractorId: contractorIds[2], naics: '332710', aircraft: 'Universal', certLevel: 'AS9100D', estValue: 3200000 },
+    { category: 'Manufacturing', name: 'Composite Structures Fabrication', description: 'Autoclave-cured carbon fiber structural components and fairings', contractorId: contractorIds[3], naics: '336411', aircraft: 'F-35, B787, A350', certLevel: 'NADCAP', estValue: 4100000 },
+    { category: 'Supply Chain', name: 'AOG Parts Distribution', description: '24/7 AOG parts sourcing and worldwide expedited shipping network', contractorId: contractorIds[4], naics: '423390', aircraft: 'All Commercial', certLevel: 'ASA-100', estValue: 8900000 },
+    { category: 'Supply Chain', name: 'Engine Component Supply', description: 'CFM56, V2500, and GEnx engine rotable and expendable parts', contractorId: contractorIds[5], naics: '423390', aircraft: 'A320, B737, B787', certLevel: 'FAA AC 00-56B', estValue: 6700000 },
+    { category: 'Engineering', name: 'STC Development', description: 'Supplemental Type Certificate development for avionics upgrades and cabin modifications', contractorId: contractorIds[6], naics: '541330', aircraft: 'B737, A320, CRJ-900', certLevel: 'FAA DER', estValue: 1500000 },
+    { category: 'Engineering', name: 'Structural Repair Engineering', description: 'Engineering analysis and repair design for fatigue-critical airframe structures', contractorId: contractorIds[7], naics: '541330', aircraft: 'B767, A330, C-130', certLevel: 'FAA ODA', estValue: 980000 },
+    { category: 'Tooling', name: 'Special Purpose Test Equipment', description: 'Design and manufacture of NDT inspection fixtures and test rigs', contractorId: contractorIds[8], naics: '333249', aircraft: 'Universal', certLevel: 'ISO 9001', estValue: 750000 },
+    { category: 'MRO', name: 'Avionics Integration', description: 'Glass cockpit upgrades, ADS-B Out compliance, and FMS modernization', contractorId: contractorIds[9], naics: '334511', aircraft: 'B737NG, A320, E175', certLevel: 'FAA Part 145', estValue: 2100000 },
+    { category: 'Manufacturing', name: 'Landing Gear Overhaul', description: 'Complete landing gear disassembly, NDT inspection, plating, reassembly, and testing', contractorId: contractorIds[10], naics: '336413', aircraft: 'B737, A320, ERJ-145', certLevel: 'OEM Authorized', estValue: 5400000 },
+    { category: 'Supply Chain', name: 'Hardware Fastener Distribution', description: 'NAS, MS, AN series aerospace fasteners and标准件 inventory', contractorId: contractorIds[11], naics: '423390', aircraft: 'Universal', certLevel: 'ASA-100', estValue: 3100000 },
+    { category: 'Engineering', name: 'NDT Inspection Services', description: 'Ultrasonic, eddy current, and radiographic inspection per ASTM E1444', contractorId: contractorIds[12], naics: '541990', aircraft: 'All Types', certLevel: 'NADCAP NDT', estValue: 1200000 },
+    { category: 'MRO', name: 'APU MRO Services', description: 'Full overhaul and repair of Honeywell GTCP36-300 and APS3200 APU systems', contractorId: contractorIds[13], naics: '336413', aircraft: 'B737, A320', certLevel: 'OEM License', estValue: 3800000 },
+    { category: 'Manufacturing', name: 'Wiring Harness Production', description: ' MIL-STD-1553 and ARINC 429 cable harness fabrication and testing', contractorId: contractorIds[14], naics: '335999', aircraft: 'Defense & Commercial', certLevel: 'NADCAP', estValue: 1600000 },
+    { category: 'Tooling', name: 'GSE Manufacturing', description: 'Ground support equipment design including tow bars, engine stands, and transport cradles', contractorId: contractorIds[15], naics: '333249', aircraft: 'B737, A320, B787', certLevel: 'ISO 9001', estValue: 890000 },
+  ]
+
+  let capCount = 0
+  for (const cap of CAPABILITIES_DATA) {
+    await client.execute({
+      sql: `INSERT OR IGNORE INTO capabilities (id, contractor_id, category, name, description, status, certification_level, naics_code, aircraft_types, estimated_value, priority, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      args: [
+        uid(),
+        cap.contractorId,
+        cap.category,
+        cap.name,
+        cap.description,
+        'Active',
+        cap.certLevel,
+        cap.naics,
+        cap.aircraft,
+        cap.estValue,
+        ['High', 'Critical', 'Medium'][capCount % 3],
+        daysAgo(Math.floor(Math.random() * 30)),
+        now(),
+      ],
+    })
+    capCount++
+  }
+  counts.capabilities = capCount
+
+  // 10. Notifications
   for (let i = 0; i < 5; i++) {
     await client.execute({
       sql: `INSERT OR IGNORE INTO notifications (id, type, title, body, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
