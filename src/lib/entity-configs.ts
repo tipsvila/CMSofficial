@@ -417,7 +417,7 @@ export const samDataConfig: CrudConfig = {
     requiredHeaders: { award: 'CSV must have an "award_id_piid" column', recipient: 'CSV must have a "recipient_name" column' },
     requiredFields: ['awardIdPiid', 'recipientName'],
     headerKeywords: {
-      awardIdPiid: ['award_id_piid', 'awardidpiid', 'piid', 'award'],
+      awardIdPiid: ['award_id_piid', 'awardidpiid', 'award id/piid', 'piid', 'award'],
       recipientName: ['recipient_name', 'recipientname', 'recipient', 'company', 'name'],
       totalObligatedAmount: ['total_obligated_amount', 'amount', 'total', 'obligated'],
       periodOfPerformanceCurrentEndDate: ['end_date', 'end date', 'period', 'performance'],
