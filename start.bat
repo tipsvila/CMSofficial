@@ -4,6 +4,7 @@ echo   CMS OFFICIAL
 echo   SAM.gov Aviation Compliance System
 echo ==========================================
 echo.
+echo   [Using stable Webpack - no Turbopack HMR errors]
 echo   [Auto-cache clear enabled - .next wiped on dev start]
 echo.
 echo   1. Dev Server (port 3000)

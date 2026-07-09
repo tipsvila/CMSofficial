@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "clean": "rimraf .next || rmdir /s /q .next",
-    "dev": "pnpm clean && next dev --turbopack",
-    "dev:3005": "pnpm clean && next dev --turbopack -p 3005",
-    "build": "next build --turbopack",
+    "dev": "pnpm clean && next dev",
+    "dev:3005": "pnpm clean && next dev -p 3005",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
