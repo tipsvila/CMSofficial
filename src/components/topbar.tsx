@@ -8,7 +8,30 @@ import { useSettings } from '@/lib/settings-context'
 const pageNames: Record<string, string> = {
   '/': 'Dashboard',
   '/capabilities': 'Capabilities',
+  '/contacts': 'Contacts',
+  '/contacts/new': 'New Contact',
+  '/database': 'Database',
   '/settings': 'Settings',
+  '/contractors': 'Contractors',
+  '/compliance': 'Compliance',
+  '/outreach': 'Outreach',
+  '/inquiries': 'Inquiries',
+  '/contracts': 'Contracts',
+  '/documents': 'Documents',
+  '/orders': 'Orders',
+  '/notifications': 'Notifications',
+}
+
+function resolvePageName(pathname: string): string {
+  if (pageNames[pathname]) return pageNames[pathname]
+  if (pathname.startsWith('/contacts/')) return 'Contact Details'
+  if (pathname.startsWith('/contractors/')) return 'Contractor Details'
+  if (pathname.startsWith('/compliance/')) return 'Compliance Details'
+  if (pathname.startsWith('/outreach/')) return 'Outreach Details'
+  if (pathname.startsWith('/inquiries/')) return 'Inquiry Details'
+  if (pathname.startsWith('/contracts/')) return 'Contract Details'
+  if (pathname.startsWith('/orders/')) return 'Order Details'
+  return 'Dashboard'
 }
 
 export function Topbar() {
@@ -30,7 +53,7 @@ export function Topbar() {
     try { localStorage.setItem('darkMode', String(next)) } catch {}
   }
 
-  const pageName = pageNames[pathname] || 'Dashboard'
+  const pageName = mounted ? resolvePageName(pathname) : 'Dashboard'
 
   return (
     <header className="sticky top-0 z-30 bg-[var(--card-bg)] border-b border-[var(--border-color)]">

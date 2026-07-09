@@ -16,24 +16,25 @@ export function Badge({ variant, children, className }: BadgeProps) {
 }
 
 interface DataTableProps {
-  columns: { key: string; label: string; render?: (row: Record<string, unknown>) => ReactNode }[]
+  columns: { key: string; label: string; headerRender?: () => ReactNode; render?: (row: Record<string, unknown>) => ReactNode }[]
   data: Record<string, unknown>[]
   emptyMessage?: string
+  onRowClick?: (row: Record<string, unknown>) => void
 }
-export function DataTable({ columns, data, emptyMessage = 'No data found' }: DataTableProps) {
+export function DataTable({ columns, data, emptyMessage = 'No data found', onRowClick }: DataTableProps) {
   const rows = Array.isArray(data) ? data : []
   return (
     <div className="matdash-card p-0 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="matdash-table">
           <thead>
-            <tr>{columns.map((col) => <th key={col.key}>{col.label}</th>)}</tr>
+            <tr>{columns.map((col) => <th key={col.key}>{col.headerRender ? col.headerRender() : col.label}</th>)}</tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr><td colSpan={columns.length} className="text-center py-8 text-[var(--text-muted)]">{emptyMessage}</td></tr>
             ) : rows.map((row, i) => (
-              <tr key={(row.id as string) || i}>
+              <tr key={(row.id as string) || i} onClick={() => onRowClick?.(row)} className={onRowClick ? 'cursor-pointer' : ''}>
                 {columns.map((col) => (
                   <td key={col.key}>{col.render ? col.render(row) : String(row[col.key] ?? '-')}</td>
                 ))}
@@ -41,6 +42,30 @@ export function DataTable({ columns, data, emptyMessage = 'No data found' }: Dat
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+interface ConfirmDialogProps {
+  open: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  message: string
+  confirmLabel?: string
+}
+export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Delete' }: ConfirmDialogProps) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" onClick={onClose}>
+      <div className="matdash-card w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">{title}</h3>
+        <p className="text-sm text-[var(--text-secondary)] mb-6">{message}</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="matdash-btn matdash-btn-outline text-[12px]">Cancel</button>
+          <button onClick={onConfirm} className="matdash-btn matdash-btn-danger text-[12px]">{confirmLabel}</button>
+        </div>
       </div>
     </div>
   )

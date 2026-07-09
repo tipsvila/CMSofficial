@@ -1,0 +1,3 @@
+{
+  "plugin": ["@dietrichgebert/ponytail", "~/.config/opencode/node_modules/superpowers"]
+}

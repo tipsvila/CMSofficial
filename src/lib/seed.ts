@@ -119,7 +119,7 @@ export async function seedDatabase(): Promise<{ success: boolean; counts: Record
     const id = uid()
     contractIds.push(id)
     await client.execute({
-      sql: `INSERT OR IGNORE INTO aviation_contracts_staging (id, award_id_piid, recipient_name, total_obligated_amount, naics_description, awarding_agency_name, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      sql: `INSERT OR IGNORE INTO SAM_Data (id, award_id_piid, recipient_name, total_obligated_amount, naics_description, awarding_agency_name, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
       args: [id, c.awardIdPiid, c.recipientName, c.obligatedAmount, c.naics, c.agency, daysAgo(Math.floor(Math.random() * 30)), now()],
     })
   }

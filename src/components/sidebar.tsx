@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { LayoutDashboard, Menu, X, ChevronLeft, ChevronRight, Award, Settings } from 'lucide-react'
+import { LayoutDashboard, Menu, X, ChevronLeft, ChevronRight, Award, Settings, Database, Users, Shield, Send, ShoppingCart, Bell, FileText, ClipboardList, FileSearch, Globe } from 'lucide-react'
 import { useSettings } from '@/lib/settings-context'
 
 interface NavItem { name: string; href: string; icon: React.ComponentType<{ size?: number; className?: string }> }
@@ -13,11 +13,24 @@ const navigation: NavGroup[] = [
   { title: 'Dashboards', items: [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   ]},
+  { title: 'CRM', items: [
+    { name: 'SAM Data', href: '/sam-data', icon: Globe },
+    { name: 'Contracts', href: '/contracts', icon: FileText },
+    { name: 'Contractors', href: '/contractors', icon: Users },
+    { name: 'Contacts', href: '/contacts', icon: Users },
+    { name: 'Outreach', href: '/outreach', icon: Send },
+    { name: 'Compliance', href: '/compliance', icon: Shield },
+    { name: 'Inquiries', href: '/inquiries', icon: ClipboardList },
+  ]},
   { title: 'Operations', items: [
     { name: 'Capabilities', href: '/capabilities', icon: Award },
+    { name: 'Documents', href: '/documents', icon: FileSearch },
+    { name: 'Orders', href: '/orders', icon: ShoppingCart },
+    { name: 'Notifications', href: '/notifications', icon: Bell },
   ]},
   { title: 'System', items: [
     { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Database', href: '/database', icon: Database },
   ]},
 ]
 
@@ -44,7 +57,9 @@ export function Sidebar() {
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
-  const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href))
+  const isActive = (href: string) => mounted && (pathname === href || (href !== '/' && pathname.startsWith(href)))
+
+  if (!mounted) return null
 
   return (
     <>
@@ -54,12 +69,12 @@ export function Sidebar() {
       </button>
       {mobileOpen && <div className="lg:hidden fixed inset-0 z-40 bg-black/40" onClick={() => setMobileOpen(false)} />}
 
-      <aside suppressHydrationWarning className={`sidebar lg:hidden ${mobileOpen ? 'mobile-open' : ''}`}>
+      <aside className={`sidebar lg:hidden ${mobileOpen ? 'mobile-open' : ''}`}>
         <SidebarContent companyName={settings.companyName} tagline={settings.tagline} logoUrl={settings.logoUrl} logoSize={settings.logoSize} isActive={isActive} />
       </aside>
 
-      {mounted && !expanded && (
-        <aside suppressHydrationWarning className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col items-center bg-[var(--sidebar-bg)] border-r border-[var(--border-color)]" style={{ width: '4.5rem' }}>
+      {!expanded && (
+        <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col items-center bg-[var(--sidebar-bg)] border-r border-[var(--border-color)]" style={{ width: '4.5rem' }}>
           <Link href="/" className="flex items-center justify-center w-full h-14 shrink-0" title={settings.companyName}>
           <div className="rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ width: settings.logoSize || 36, height: settings.logoSize || 36 }}>
             {settings.logoUrl ? <Image src={settings.logoUrl} alt={settings.companyName} width={settings.logoSize || 36} height={settings.logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>}
@@ -81,8 +96,8 @@ export function Sidebar() {
         </aside>
       )}
 
-      {mounted && expanded && (
-        <aside suppressHydrationWarning className="hidden lg:flex fixed inset-y-0 left-0 z-40 bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] flex-col" style={{ width: '260px' }}>
+      {expanded && (
+        <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] flex-col" style={{ width: '260px' }}>
           <SidebarContent companyName={settings.companyName} tagline={settings.tagline} logoUrl={settings.logoUrl} logoSize={settings.logoSize} isActive={isActive} onCollapse={() => setExpanded(false)} />
         </aside>
       )}

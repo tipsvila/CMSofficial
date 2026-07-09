@@ -1,11 +1,11 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info'
 interface Toast { id: string; type: ToastType; message: string }
 
-let listeners: Array<() => void> = []
+const listeners: Array<() => void> = []
 let toasts: Toast[] = []
 
 function emitChange() { for (const l of listeners) l() }
@@ -19,10 +19,11 @@ function removeToast(id: string) { toasts = toasts.filter((t) => t.id !== id); e
 
 export function useToast() {
   const [, setUpdate] = useState(0)
+  const listenerRef = useRef(() => setUpdate((n) => n + 1))
   useEffect(() => {
-    const l = () => setUpdate((n) => n + 1)
+    const l = listenerRef.current
     listeners.push(l)
-    return () => { listeners = listeners.filter((x) => x !== l) }
+    return () => { const i = listeners.indexOf(l); if (i >= 0) listeners.splice(i, 1) }
   }, [])
   const toast = useCallback((type: ToastType, message: string) => { addToast(type, message) }, [])
   return { toast }
@@ -41,10 +42,11 @@ const bgColors = {
 
 export function ToastContainer() {
   const [, setUpdate] = useState(0)
+  const listenerRef = useRef(() => setUpdate((n) => n + 1))
   useEffect(() => {
-    const l = () => setUpdate((n) => n + 1)
+    const l = listenerRef.current
     listeners.push(l)
-    return () => { listeners = listeners.filter((x) => x !== l) }
+    return () => { const i = listeners.indexOf(l); if (i >= 0) listeners.splice(i, 1) }
   }, [])
   if (toasts.length === 0) return null
   return (

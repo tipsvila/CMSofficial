@@ -96,10 +96,59 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
-  const fetchSettings = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(json => {
+        if (!cancelled && json.success && json.data) {
+          const d = json.data
+          setSettings({
+            id: d.id ?? undefined,
+            companyName: d.companyName ?? '',
+            tagline: d.tagline ?? '',
+            address: d.address ?? '',
+            city: d.city ?? '',
+            state: d.state ?? '',
+            zipCode: d.zipCode ?? '',
+            country: d.country ?? 'US',
+            phone: d.phone ?? '',
+            phoneAlt: d.phoneAlt ?? '',
+            email: d.email ?? '',
+            website: d.website ?? '',
+            logoUrl: d.logoUrl ?? '/logo.svg',
+            logoSize: d.logoSize ?? 36,
+            faviconUrl: d.faviconUrl ?? '',
+            uei: d.uei ?? '',
+            cageCode: d.cageCode ?? '',
+            naicsCodes: d.naicsCodes ?? '',
+            taxId: d.taxId ?? '',
+            duns: d.duns ?? '',
+            samRegistration: d.samRegistration ?? false,
+            capabilities: d.capabilities ?? '',
+            coreCapabilities: d.coreCapabilities ?? '',
+            certifications: d.certifications ?? '',
+            complianceFrameworks: d.complianceFrameworks ?? '',
+            naicsDescriptions: d.naicsDescriptions ?? '',
+            serviceHighlights: d.serviceHighlights ?? '',
+            whyChooseUs: d.whyChooseUs ?? '',
+            samGovStatus: d.samGovStatus ?? 'Submitted Registration',
+            registrationPurpose: d.registrationPurpose ?? 'All Awards',
+            ownerName: d.ownerName ?? 'Hafiz Faisal Farooq',
+            defaultCurrency: d.defaultCurrency ?? 'USD',
+            smtpFromName: d.smtpFromName ?? '',
+            smtpFromEmail: d.smtpFromEmail ?? '',
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) { setLoading(false); setMounted(true) } })
+    return () => { cancelled = true }
+  }, [])
+
+  const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/settings')
-      if (!res.ok) throw new Error('Failed to load settings')
       const json = await res.json()
       if (json.success && json.data) {
         const d = json.data
@@ -108,50 +157,43 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           companyName: d.companyName ?? '',
           tagline: d.tagline ?? '',
           address: d.address ?? '',
-          city: d.city ?? '',
-          state: d.state ?? '',
-          zipCode: d.zipCode ?? '',
-          country: d.country ?? 'US',
-          phone: d.phone ?? '',
-          phoneAlt: d.phoneAlt ?? '',
-          email: d.email ?? '',
-          website: d.website ?? '',
-          logoUrl: d.logoUrl ?? '/logo.svg',
-          logoSize: d.logoSize ?? 36,
-          faviconUrl: d.faviconUrl ?? '',
-          uei: d.uei ?? '',
-          cageCode: d.cageCode ?? '',
-          naicsCodes: d.naicsCodes ?? '',
-          taxId: d.taxId ?? '',
-          duns: d.duns ?? '',
-          samRegistration: d.samRegistration ?? false,
-          capabilities: d.capabilities ?? '',
-          coreCapabilities: d.coreCapabilities ?? '',
-          certifications: d.certifications ?? '',
-          complianceFrameworks: d.complianceFrameworks ?? '',
-          naicsDescriptions: d.naicsDescriptions ?? '',
-          serviceHighlights: d.serviceHighlights ?? '',
-          whyChooseUs: d.whyChooseUs ?? '',
-          samGovStatus: d.samGovStatus ?? 'Submitted Registration',
-          registrationPurpose: d.registrationPurpose ?? 'All Awards',
-          ownerName: d.ownerName ?? 'Hafiz Faisal Farooq',
-          defaultCurrency: d.defaultCurrency ?? 'USD',
-          smtpFromName: d.smtpFromName ?? '',
-          smtpFromEmail: d.smtpFromEmail ?? '',
-        })
-      }
-    } catch {
-      // use defaults
-    } finally {
-      setLoading(false)
-      setMounted(true)
-    }
+            city: d.city ?? '',
+            state: d.state ?? '',
+            zipCode: d.zipCode ?? '',
+            country: d.country ?? 'US',
+            phone: d.phone ?? '',
+            phoneAlt: d.phoneAlt ?? '',
+            email: d.email ?? '',
+            website: d.website ?? '',
+            logoUrl: d.logoUrl ?? '/logo.svg',
+            logoSize: d.logoSize ?? 36,
+            faviconUrl: d.faviconUrl ?? '',
+            uei: d.uei ?? '',
+            cageCode: d.cageCode ?? '',
+            naicsCodes: d.naicsCodes ?? '',
+            taxId: d.taxId ?? '',
+            duns: d.duns ?? '',
+            samRegistration: d.samRegistration ?? false,
+            capabilities: d.capabilities ?? '',
+            coreCapabilities: d.coreCapabilities ?? '',
+            certifications: d.certifications ?? '',
+            complianceFrameworks: d.complianceFrameworks ?? '',
+            naicsDescriptions: d.naicsDescriptions ?? '',
+            serviceHighlights: d.serviceHighlights ?? '',
+            whyChooseUs: d.whyChooseUs ?? '',
+            samGovStatus: d.samGovStatus ?? 'Submitted Registration',
+            registrationPurpose: d.registrationPurpose ?? 'All Awards',
+            ownerName: d.ownerName ?? 'Hafiz Faisal Farooq',
+            defaultCurrency: d.defaultCurrency ?? 'USD',
+            smtpFromName: d.smtpFromName ?? '',
+            smtpFromEmail: d.smtpFromEmail ?? '',
+          })
+        }
+    } catch {}
   }, [])
 
-  useEffect(() => { fetchSettings() }, [fetchSettings])
-
   return (
-    <SettingsContext.Provider value={{ settings, loading: loading && !mounted, refresh: fetchSettings }}>
+    <SettingsContext.Provider value={{ settings, loading: loading && !mounted, refresh }}>
       {children}
     </SettingsContext.Provider>
   )

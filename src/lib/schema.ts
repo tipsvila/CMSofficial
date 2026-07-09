@@ -1,6 +1,6 @@
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 
-export const aviationContracts = sqliteTable('aviation_contracts_staging', {
+export const SAMData = sqliteTable('SAM_Data', {
   id: text('id').primaryKey(),
   awardIdPiid: text('award_id_piid').notNull().unique(),
   recipientName: text('recipient_name').notNull(),
@@ -203,4 +203,26 @@ export const notifications = sqliteTable('notifications', {
   entityType: text('entity_type'),
   isRead: integer('is_read', { mode: 'boolean' }).default(false),
   createdAt: text('created_at').notNull(),
+})
+
+export const contracts = sqliteTable('contracts', {
+  id: text('id').primaryKey(),
+  contractNumber: text('contract_number').notNull().unique(),
+  title: text('title').notNull(),
+  contractorId: text('contractor_id'),
+  contactId: text('contact_id'),
+  status: text('status').notNull().default('Draft'),
+  totalAmount: real('total_amount').default(0),
+  taxAmount: real('tax_amount').default(0),
+  shippingAmount: real('shipping_amount').default(0),
+  currency: text('currency').default('USD'),
+  startDate: text('start_date'),
+  endDate: text('end_date'),
+  paymentTerms: text('payment_terms'),
+  deliveryTerms: text('delivery_terms'),
+  notes: text('notes'),
+  internalNotes: text('internal_notes'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
 })

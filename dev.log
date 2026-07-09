@@ -1,0 +1,26 @@
+   ▲ Next.js 15.5.20 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.157:3000
+
+ ✓ Starting...
+ ✓ Compiled middleware in 213ms
+ ✓ Ready in 2.2s
+ ○ Compiling /api/contacts ...
+ ✓ Compiled /api/contacts in 2.1s
+ GET /api/contacts?page=1 200 in 2834ms
+ GET /api/contacts?page=1 200 in 449ms
+ POST /api/contacts 500 in 888ms
+ ✓ Compiled /api/contacts/export in 498ms
+ GET /api/contacts/export 200 in 1032ms
+ ✓ Compiled /api/contacts/bulk-delete in 297ms
+ POST /api/contacts/bulk-delete 200 in 826ms
+ ✓ Compiled middleware in 17ms
+ ✓ Compiled middleware in 4ms
+ ✓ Compiled middleware in 7ms
+ ✓ Compiled middleware in 3ms
+ ✓ Compiled middleware in 5ms
+ ✓ Compiled middleware in 4ms
+ ✓ Compiled middleware in 3ms
+ ✓ Compiled middleware in 4ms
+ ✓ Compiled middleware in 6ms
+[?25h

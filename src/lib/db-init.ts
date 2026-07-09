@@ -1,7 +1,7 @@
 import { client } from './db'
 
 const TABLES = [
-  `CREATE TABLE IF NOT EXISTS aviation_contracts_staging (
+  `CREATE TABLE IF NOT EXISTS SAM_Data (
     id TEXT PRIMARY KEY,
     award_id_piid TEXT NOT NULL UNIQUE,
     recipient_name TEXT NOT NULL,
@@ -194,6 +194,27 @@ const TABLES = [
     entity_type TEXT,
     is_read INTEGER DEFAULT 0,
     created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS contracts (
+    id TEXT PRIMARY KEY,
+    contract_number TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    contractor_id TEXT,
+    contact_id TEXT,
+    status TEXT NOT NULL DEFAULT 'Draft',
+    total_amount REAL DEFAULT 0,
+    tax_amount REAL DEFAULT 0,
+    shipping_amount REAL DEFAULT 0,
+    currency TEXT DEFAULT 'USD',
+    start_date TEXT,
+    end_date TEXT,
+    payment_terms TEXT,
+    delivery_terms TEXT,
+    notes TEXT,
+    internal_notes TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
   )`,
 ]
 

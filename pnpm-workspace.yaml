@@ -1,4 +1,7 @@
 allowBuilds:
   core-js: true
+  cypress: false
+  msw: true
+  puppeteer: true
   sharp: true
   unrs-resolver: true

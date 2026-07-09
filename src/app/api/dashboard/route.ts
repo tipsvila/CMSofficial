@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { aviationContracts, contractors, outreach, compliance, inquiries, rfqs, orders, notifications } from '@/lib/schema'
+import { SAMData, contractors, outreach, compliance, inquiries, rfqs, orders, notifications } from '@/lib/schema'
 import { eq, count, sum, sql } from 'drizzle-orm'
 import { ensureDb } from '@/lib/db-ready'
 
@@ -29,11 +29,11 @@ export async function GET() {
       revenueResult,
       agencyRaw,
     ] = await Promise.all([
-      db.select({ value: count() }).from(aviationContracts),
+      db.select({ value: count() }).from(SAMData),
       db.select({ value: count() }).from(contractors).where(eq(contractors.isActive, true)),
       db.select({ value: count() }).from(outreach),
       db.select({ value: count() }).from(outreach).where(eq(outreach.status, 'Pending')),
-      db.select({ value: count() }).from(aviationContracts).where(eq(aviationContracts.isActive, true)),
+      db.select({ value: count() }).from(SAMData).where(eq(SAMData.isActive, true)),
       db.select({ value: count() }).from(inquiries),
       db.select({ value: count() }).from(inquiries).where(sql`${inquiries.status} IN ('Draft', 'Open', 'Quoted')`),
       db.select({ value: count() }).from(inquiries).where(eq(inquiries.status, 'Won')),
@@ -56,16 +56,16 @@ export async function GET() {
         .leftJoin(contractors, eq(outreach.contractorId, contractors.id))
         .orderBy(sql`${outreach.createdAt} DESC`)
         .limit(5),
-      db.select({ value: sum(aviationContracts.obligatedAmount) }).from(aviationContracts),
+      db.select({ value: sum(SAMData.obligatedAmount) }).from(SAMData),
       db.select({ value: sum(orders.totalAmount) }).from(orders).where(sql`${orders.status} IN ('Completed', 'Delivered')`),
       db.select({
-        agency: aviationContracts.agencyName,
+        agency: SAMData.agencyName,
         cnt: count(),
-        total: sum(aviationContracts.obligatedAmount),
-      }).from(aviationContracts)
-        .where(sql`${aviationContracts.agencyName} IS NOT NULL AND ${aviationContracts.isActive} = 1`)
-        .groupBy(aviationContracts.agencyName)
-        .orderBy(sql`sum(${aviationContracts.obligatedAmount}) DESC`)
+        total: sum(SAMData.obligatedAmount),
+      }).from(SAMData)
+        .where(sql`${SAMData.agencyName} IS NOT NULL AND ${SAMData.isActive} = 1`)
+        .groupBy(SAMData.agencyName)
+        .orderBy(sql`sum(${SAMData.obligatedAmount}) DESC`)
         .limit(5),
     ])
 
