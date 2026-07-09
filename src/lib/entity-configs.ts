@@ -11,6 +11,7 @@ const contactInsertMapper = (body: Record<string, unknown>, _id: string, _now: s
   (body.phone as string) || null,
   body.isPrimary ? 1 : 0,
   (body.aviationContractId as string) || null,
+  (body.source as string) || null,
 ]
 
 const contactUpdateFields: FieldMapping[] = [
@@ -28,7 +29,7 @@ export const contactsConfig: CrudConfig = {
   columns: {
     id: 'id', contractorId: 'contractor_id', firstName: 'first_name', lastName: 'last_name',
     title: 'title', email: 'email', phone: 'phone', isPrimary: 'is_primary',
-    aviationContractId: 'aviation_contract_id', isActive: 'is_active',
+    aviationContractId: 'aviation_contract_id', source: 'source', isActive: 'is_active',
     createdAt: 'created_at', updatedAt: 'updated_at',
   },
   joins: [{ table: 'contractors', alias: 'ct', on: 'c.contractor_id = ct.id', camelKey: 'contractor', nullValue: undefined }],
@@ -40,7 +41,7 @@ export const contactsConfig: CrudConfig = {
   searchColumns: ['first_name', 'last_name', 'email', 'title'],
   requiredFields: { contractorId: 'Contractor is required', firstName: 'First name is required', lastName: 'Last name is required' },
   updateFields: contactUpdateFields,
-  insertColumns: ['id', 'contractor_id', 'first_name', 'last_name', 'title', 'email', 'phone', 'is_primary', 'aviation_contract_id'],
+  insertColumns: ['id', 'contractor_id', 'first_name', 'last_name', 'title', 'email', 'phone', 'is_primary', 'aviation_contract_id', 'source'],
   insertMapper: contactInsertMapper,
   import: {
     requiredHeaders: { first: 'CSV must have "firstName" and "lastName" columns', last: 'CSV must have "firstName" and "lastName" columns' },
@@ -419,7 +420,7 @@ export const samDataConfig: CrudConfig = {
       awardIdPiid: ['award_id_piid', 'awardidpiid', 'piid', 'award'],
       recipientName: ['recipient_name', 'recipientname', 'recipient', 'company', 'name'],
       totalObligatedAmount: ['total_obligated_amount', 'amount', 'total', 'obligated'],
-      periodOfPerformanceCurrentEndDate: ['end_date', 'period', 'performance'],
+      periodOfPerformanceCurrentEndDate: ['end_date', 'end date', 'period', 'performance'],
       naicsDescription: ['naics', 'description'],
       productOrServiceCodeDescription: ['product', 'service', 'psc'],
       awardingAgencyName: ['agency', 'awarding'],
