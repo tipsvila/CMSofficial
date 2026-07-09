@@ -12,4 +12,14 @@ describe('performance', () => {
     const result = await trackApiCall('/api/test', mockFetch)
     expect(result.ok).toBe(true)
   })
+
+  it('should propagate errors from measure', async () => {
+    const err = new Error('boom')
+    await expect(measure('failing', async () => { throw err })).rejects.toThrow('boom')
+  })
+
+  it('should propagate errors from trackApiCall', async () => {
+    const err = new Error('network error')
+    await expect(trackApiCall('/fail', async () => { throw err })).rejects.toThrow('network error')
+  })
 })
