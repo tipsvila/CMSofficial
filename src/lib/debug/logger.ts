@@ -10,7 +10,6 @@ interface Logger {
 function createLogger(): Logger {
   const log = (level: LogLevel, message: string, context?: Record<string, unknown>) => {
     const timestamp = new Date().toISOString()
-    const entry = { timestamp, level, message, ...context }
 
     if (process.env.NODE_ENV === 'development') {
       const colors: Record<LogLevel, string> = {
@@ -19,9 +18,10 @@ function createLogger(): Logger {
         warn: '\x1b[33m',
         error: '\x1b[31m',
       }
-      console.log(`${colors[level]}[${timestamp}] [${level.toUpperCase()}]\x1b[0m ${message}`, context || '')
+      const contextStr = context ? ` ${JSON.stringify(context)}` : ''
+      console.log(`${colors[level]}[${timestamp}] [${level.toUpperCase()}]\x1b[0m ${message}${contextStr}`)
     } else {
-      console.log(JSON.stringify(entry))
+      console.log(JSON.stringify({ timestamp, level, message, context }))
     }
   }
 
