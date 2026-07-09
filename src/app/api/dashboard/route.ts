@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { SAMData, contractors, outreach, compliance, inquiries, rfqs, orders, notifications } from '@/lib/schema'
-import { eq, count, sum, sql, and, gte, lte, ilike } from 'drizzle-orm'
+import { eq, count, sum, sql, and, gte, lte, ilike, type SQL } from 'drizzle-orm'
 import { ensureDb } from '@/lib/db-ready'
 
 export async function GET(request: Request) {
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const status = searchParams.get('status')
     
     // Build filter conditions
-    const filters: any[] = []
+    const filters: SQL<unknown>[] = []
     
     if (dateRange) {
       const parts = dateRange.split(',')
@@ -31,9 +31,7 @@ export async function GET(request: Request) {
       filters.push(ilike(SAMData.agencyName, `%${agency}%`))
     }
     
-    if (status) {
-      filters.push(eq(SAMData.status, status))
-    }
+    // Note: SAMData has no status column; status filter is not applicable here
     
     // Apply filters to queries
     const whereClause = filters.length > 0 ? and(...filters) : undefined
@@ -175,6 +173,16 @@ export async function GET(request: Request) {
         pendingOrders: pendingOrders[0]?.value || 0,
         totalRevenue,
         unreadNotifications: unreadNotifications[0]?.value || 0,
+      },
+      samData: {
+        totalRecords: totalContracts[0]?.value || 0,
+        activeContracts: activeContracts[0]?.value || 0,
+        pipelineValue: totalContractValue,
+        topAgencies: agencyRaw.map((r) => ({
+          agency: r.agency || 'Unknown',
+          count: r.cnt,
+          total: Number(r.total || 0),
+        })),
       },
       recentOutreach: recentOutreach.map((r) => ({
         id: r.id,

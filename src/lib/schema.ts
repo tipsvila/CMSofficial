@@ -46,6 +46,7 @@ export const contacts = sqliteTable('contacts', {
   phone: text('phone'),
   isPrimary: integer('is_primary', { mode: 'boolean' }).default(false),
   aviationContractId: text('aviation_contract_id'),
+  source: text('source'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),

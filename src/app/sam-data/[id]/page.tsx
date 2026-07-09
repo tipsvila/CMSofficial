@@ -4,16 +4,18 @@ import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { ConfirmDialog } from '@/components/ui'
-import { ArrowLeft, Save, Trash2, Loader2, Mail, FileText, Inbox, History } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, Loader2, Mail, FileText, History } from 'lucide-react'
 import Link from 'next/link'
 import { api } from '@/lib/api-client'
 import { useToast } from '@/components/toast'
 import { EmailCompose } from '@/components/email-compose'
+import { SAMDataDetail } from '@/components/sam-data/sam-data-detail'
 
 interface SAMData {
-  id: string; awardIdPiid: string; recipientName: string; totalObligatedAmount: number;
+  id: string; awardIdPiid: string; recipientName: string; totalObligatedAmount?: number | null;
   periodOfPerformanceCurrentEndDate?: string | null; naicsDescription?: string | null;
   productOrServiceCodeDescription?: string | null; awardingAgencyName?: string | null;
+  createdAt?: string | null; updatedAt?: string | null;
 }
 
 interface Draft {
@@ -42,8 +44,16 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [activeTab, setActiveTab] = useState<'details' | 'email' | 'drafts' | 'history'>('details')
+  const [samData, setSamData] = useState<SAMData | null>(null)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // New record form
+  const [form, setForm] = useState({
+    awardIdPiid: '', recipientName: '', totalObligatedAmount: '',
+    periodOfPerformanceCurrentEndDate: '', naicsDescription: '',
+    productOrServiceCodeDescription: '', awardingAgencyName: '',
+  })
 
   // Email state
   const [sendingEmail, setSendingEmail] = useState(false)
@@ -58,22 +68,10 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([])
   const [emailLogsLoading, setEmailLogsLoading] = useState(false)
 
-  const [form, setForm] = useState({
-    awardIdPiid: '', recipientName: '', totalObligatedAmount: '',
-    periodOfPerformanceCurrentEndDate: '', naicsDescription: '',
-    productOrServiceCodeDescription: '', awardingAgencyName: '',
-  })
-
   useEffect(() => {
     if (!isNew) {
       api.get<SAMData>(`/api/sam-data/${id}`)
-        .then(d => setForm({
-          awardIdPiid: d.awardIdPiid || '', recipientName: d.recipientName || '',
-          totalObligatedAmount: d.totalObligatedAmount != null ? String(d.totalObligatedAmount) : '',
-          periodOfPerformanceCurrentEndDate: d.periodOfPerformanceCurrentEndDate ? d.periodOfPerformanceCurrentEndDate.split('T')[0].split(' ')[0] : '',
-          naicsDescription: d.naicsDescription || '', productOrServiceCodeDescription: d.productOrServiceCodeDescription || '',
-          awardingAgencyName: d.awardingAgencyName || '',
-        }))
+        .then(d => setSamData(d))
         .catch(() => toast('error', 'Failed to load SAM record'))
         .finally(() => setLoading(false))
     }
@@ -116,15 +114,16 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
     setSaving(true)
     try {
       const body = {
-        ...form,
+        awardIdPiid: form.awardIdPiid,
+        recipientName: form.recipientName,
         totalObligatedAmount: form.totalObligatedAmount ? Number(form.totalObligatedAmount) : 0,
         periodOfPerformanceCurrentEndDate: form.periodOfPerformanceCurrentEndDate || null,
         naicsDescription: form.naicsDescription || null,
         productOrServiceCodeDescription: form.productOrServiceCodeDescription || null,
         awardingAgencyName: form.awardingAgencyName || null,
       }
-      if (isNew) { await api.post('/api/sam-data', body); toast('success', 'SAM record created') }
-      else { await api.put(`/api/sam-data/${id}`, body); toast('success', 'SAM record updated') }
+      await api.post('/api/sam-data', body)
+      toast('success', 'SAM record created')
       router.push('/sam-data')
     } catch (err) { toast('error', err instanceof Error ? err.message : 'Failed to save') }
     finally { setSaving(false) }
@@ -137,25 +136,25 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
     finally { setDeleting(false) }
   }
 
-  const handleSendEmail = async (data: { to: string; cc: string; bcc: string; subject: string; body: string; template: string }) => {
+  const handleSendEmail = async (emailData: { to: string; cc: string; bcc: string; subject: string; body: string; template: string }) => {
     setSendingEmail(true)
     try {
       await api.post(`/api/sam-data/${id}/send-email`, {
-        to: data.to, cc: data.cc || undefined, bcc: data.bcc || undefined,
-        subject: data.subject, template: data.template || undefined, customBody: data.body || undefined,
+        to: emailData.to, cc: emailData.cc || undefined, bcc: emailData.bcc || undefined,
+        subject: emailData.subject, template: emailData.template || undefined, customBody: emailData.body || undefined,
       })
       toast('success', 'Email sent successfully')
     } catch (err) { toast('error', err instanceof Error ? err.message : 'Failed to send email') }
     finally { setSendingEmail(false) }
   }
 
-  const handleSaveDraft = async (data: { to: string; cc: string; bcc: string; subject: string; body: string; template: string }) => {
+  const handleSaveDraft = async (draftData: { to: string; cc: string; bcc: string; subject: string; body: string; template: string }) => {
     setSavingDraft(true)
     try {
       await fetch(`/api/sam-data/${id}/drafts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, draftId: selectedDraft?.id }),
+        body: JSON.stringify({ ...draftData, draftId: selectedDraft?.id }),
       })
       toast('success', selectedDraft ? 'Draft updated' : 'Draft saved')
       setSelectedDraft(null)
@@ -178,13 +177,11 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-[var(--primary)]" size={32} /></div>
 
-  const fieldClass = (key: string) => `w-full px-3 py-2 border rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] ${formErrors[key] ? 'border-[var(--danger)]' : 'border-[var(--border-color)]'}`
-
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title={isNew ? 'New SAM Record' : form.awardIdPiid || 'SAM Record'}
-        subtitle={!isNew ? form.recipientName : undefined}
+        title={isNew ? 'New SAM Record' : samData?.awardIdPiid || 'SAM Record'}
+        subtitle={!isNew ? samData?.recipientName : undefined}
         actions={
           <div className="flex gap-2 items-center">
             <Link href="/sam-data" className="matdash-btn matdash-btn-outline text-[12px]"><ArrowLeft size={14} /> Back</Link>
@@ -216,43 +213,63 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {/* Details Tab */}
-      {activeTab === 'details' && (
+      {/* New Record Form */}
+      {isNew && (
         <div className="matdash-card max-w-3xl">
           <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-4">SAM Data Information</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Award ID/PIID <span className="text-[var(--danger)]">*</span></label>
-              <input type="text" value={form.awardIdPiid} onChange={e => setForm({ ...form, awardIdPiid: e.target.value })} className={fieldClass('awardIdPiid')} placeholder="e.g. W911KB18C0026" />
+              <input type="text" value={form.awardIdPiid} onChange={e => setForm({ ...form, awardIdPiid: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] ${formErrors.awardIdPiid ? 'border-[var(--danger)]' : 'border-[var(--border-color)]'}`}
+                placeholder="e.g. W911KB18C0026" />
               {formErrors.awardIdPiid && <p className="text-[10px] text-[var(--danger)] mt-0.5">{formErrors.awardIdPiid}</p>}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Recipient Name <span className="text-[var(--danger)]">*</span></label>
-              <input type="text" value={form.recipientName} onChange={e => setForm({ ...form, recipientName: e.target.value })} className={fieldClass('recipientName')} placeholder="Company name" />
+              <input type="text" value={form.recipientName} onChange={e => setForm({ ...form, recipientName: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] ${formErrors.recipientName ? 'border-[var(--danger)]' : 'border-[var(--border-color)]'}`}
+                placeholder="Company name" />
               {formErrors.recipientName && <p className="text-[10px] text-[var(--danger)] mt-0.5">{formErrors.recipientName}</p>}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Total Obligated Amount</label>
-              <input type="number" step="0.01" value={form.totalObligatedAmount} onChange={e => setForm({ ...form, totalObligatedAmount: e.target.value })} className={fieldClass('totalObligatedAmount')} placeholder="0.00" />
+              <input type="number" step="0.01" value={form.totalObligatedAmount} onChange={e => setForm({ ...form, totalObligatedAmount: e.target.value })}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                placeholder="0.00" />
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Period of Performance End Date</label>
-              <input type="date" value={form.periodOfPerformanceCurrentEndDate} onChange={e => setForm({ ...form, periodOfPerformanceCurrentEndDate: e.target.value })} className={fieldClass('periodOfPerformanceCurrentEndDate')} />
+              <input type="date" value={form.periodOfPerformanceCurrentEndDate}
+                onChange={e => setForm({ ...form, periodOfPerformanceCurrentEndDate: e.target.value })}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30" />
             </div>
             <div className="col-span-2">
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">NAICS Description</label>
-              <textarea value={form.naicsDescription} onChange={e => setForm({ ...form, naicsDescription: e.target.value })} className={fieldClass('naicsDescription')} rows={2} placeholder="NAICS description..." />
+              <textarea value={form.naicsDescription} onChange={e => setForm({ ...form, naicsDescription: e.target.value })}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                rows={2} placeholder="NAICS description..." />
             </div>
             <div className="col-span-2">
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Product or Service Code Description</label>
-              <textarea value={form.productOrServiceCodeDescription} onChange={e => setForm({ ...form, productOrServiceCodeDescription: e.target.value })} className={fieldClass('productOrServiceCodeDescription')} rows={2} placeholder="PSC description..." />
+              <textarea value={form.productOrServiceCodeDescription}
+                onChange={e => setForm({ ...form, productOrServiceCodeDescription: e.target.value })}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                rows={2} placeholder="PSC description..." />
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Awarding Agency</label>
-              <input type="text" value={form.awardingAgencyName} onChange={e => setForm({ ...form, awardingAgencyName: e.target.value })} className={fieldClass('awardingAgencyName')} placeholder="e.g. Department of Defense" />
+              <input type="text" value={form.awardingAgencyName} onChange={e => setForm({ ...form, awardingAgencyName: e.target.value })}
+                className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                placeholder="e.g. Department of Defense" />
             </div>
           </div>
         </div>
+      )}
+
+      {/* Details Tab */}
+      {activeTab === 'details' && samData && (
+        <SAMDataDetail data={samData} onUpdate={(updated) => setSamData(updated)} />
       )}
 
       {/* Email Tab */}
@@ -266,7 +283,7 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
             sending={sendingEmail}
             saving={savingDraft}
             defaultTo=""
-            defaultSubject={`Re: ${form.awardIdPiid} — ${form.recipientName}`}
+            defaultSubject={`Re: ${samData?.awardIdPiid || ''} — ${samData?.recipientName || ''}`}
           />
         </div>
       )}
@@ -332,7 +349,7 @@ export default function SAMDataDetailPage({ params }: { params: Promise<{ id: st
                   onSaveDraft={handleSaveDraft}
                   sending={sendingEmail}
                   saving={savingDraft}
-                  defaultSubject={`Re: ${form.awardIdPiid} — ${form.recipientName}`}
+                  defaultSubject={`Re: ${samData?.awardIdPiid || ''} — ${samData?.recipientName || ''}`}
                 />
               </div>
             )}

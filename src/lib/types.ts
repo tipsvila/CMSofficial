@@ -19,8 +19,19 @@ export interface DashboardStats {
     totalRevenue: number
     unreadNotifications: number
   }
+  samData: {
+    totalRecords: number
+    activeContracts: number
+    pipelineValue: number
+    topAgencies: { agency: string; count: number; total: number }[]
+  }
   recentOutreach: Outreach[]
   agencySummary: { agency: string; count: number; total: number }[]
+  trends: {
+    contracts: { month: string; count: number; total: number }[]
+    outreach: { month: string; count: number }[]
+    inquiries: { month: string; count: number }[]
+  }
 }
 
 export interface Outreach {

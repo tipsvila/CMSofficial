@@ -1,48 +1,29 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, ReactNode } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
-import { DataTable, ConfirmDialog } from '@/components/ui'
-import { Plus, Search, Eye, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { DataTable, ConfirmDialog, Modal } from '@/components/ui'
+import { BulkActions } from './bulk-actions'
+import { Plus, Search, Eye, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2, ArrowRightLeft } from 'lucide-react'
 import { SortIcon } from '@/components/sort-icon'
 import Link from 'next/link'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useToast } from '@/components/toast'
 import { TableSkeleton } from '@/components/skeleton'
 import { api } from '@/lib/api-client'
+import { EntityColumn, EntityFilter, EntityListConfig } from '@/components/entity-list-page'
+import { EmailModal } from './email-modal'
+import type { SAMRecord } from '@/lib/sam-email'
 
-export interface EntityColumn {
-  key: string
-  label: string
-  sortable?: boolean
-  sortField?: string
-  render?: (row: Record<string, unknown>) => ReactNode
+export type { EntityColumn, EntityFilter, EntityListConfig }
+
+interface SAMDataListProps {
+  config: EntityListConfig
 }
 
-export interface EntityFilter {
-  param: string       // URL search param name (e.g. "status")
-  label: string       // Display label (e.g. "All Statuses")
-  options: string[]   // Dropdown options (e.g. ["All", "Draft", "Active"])
-}
-
-export interface EntityListConfig {
-  entityName: string
-  endpoint: string
-  responseKey: string
-  columns: EntityColumn[]
-  csvHeaders: string[]
-  csvRowMapper: (row: Record<string, unknown>) => unknown[]
-  searchPlaceholder?: string
-  addHref?: string
-  addLabel?: string
-  cols?: number
-  filters?: EntityFilter[]
-  extraActions?: ReactNode
-}
-
-export function EntityListPage({ config }: { config: EntityListConfig }) {
-  const { entityName, endpoint, responseKey, columns, csvHeaders, csvRowMapper, searchPlaceholder, addHref, addLabel, cols, filters, extraActions } = config
+export function SAMDataList({ config }: SAMDataListProps) {
+  const { entityName, endpoint, responseKey, columns, csvHeaders, csvRowMapper, searchPlaceholder, addHref, addLabel, cols, filters } = config
   const router = useRouter()
   const { toast } = useToast()
   const [data, setData] = useState<{ items: Record<string, unknown>[]; total: number }>({ items: [], total: 0 })
@@ -55,6 +36,10 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
+  const [transferModalOpen, setTransferModalOpen] = useState(false)
+  const [transferTarget, setTransferTarget] = useState('')
+  const [transferEntity, setTransferEntity] = useState<'contract' | 'outreach' | 'compliance'>('contract')
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [filterValues, setFilterValues] = useState<Record<string, string>>(() =>
@@ -127,9 +112,78 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
     } catch { toast('error', 'Delete failed') }
   }
 
-  const toggleSelectAll = () => { if (selectedIds.size === data.items.length) setSelectedIds(new Set()); else setSelectedIds(new Set(data.items.map(r => r.id as string))) }
-  const toggleSelect = (id: string) => { setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next }) }
-  const handleSort = (field: string) => { if (sortBy === field) setSortOrder(p => p === 'asc' ? 'desc' : 'asc'); else { setSortBy(field); setSortOrder('asc') }; setPage(1) }
+  const handleExportSelected = async () => {
+    setExporting(true)
+    try {
+      const selectedItems = data.items.filter(item => selectedIds.has(item.id as string))
+      const rows = selectedItems.map(csvRowMapper)
+      const csv = [csvHeaders, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${entityName.toLowerCase()}-selected-${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url)
+      toast('success', `Exported ${selectedItems.length} selected ${entityName.toLowerCase()} to CSV`)
+    } catch { toast('error', 'Failed to export selected records') }
+    finally { setExporting(false) }
+  }
+
+  const handleTransfer = async () => {
+    if (!transferTarget.trim()) {
+      toast('error', 'Please select or enter a target')
+      return
+    }
+    try {
+      const endpoints: Record<string, string> = {
+        contract: '/api/contracts',
+        outreach: '/api/outreach',
+        compliance: '/api/compliance',
+      }
+      const selectedItems = data.items.filter(item => selectedIds.has(item.id as string))
+      for (const item of selectedItems) {
+        const body: Record<string, unknown> = {
+          notes: `Linked from SAM Record: ${item.awardIdPiid} - ${item.recipientName}`,
+          samDataId: item.id,
+        }
+        if (transferEntity === 'contract') {
+          body.title = `Contract from ${item.awardIdPiid}`
+          body.contractorId = transferTarget
+        } else if (transferEntity === 'outreach') {
+          body.contractorId = transferTarget
+          body.subject = `Outreach for ${item.awardIdPiid}`
+        } else {
+          body.contractorId = transferTarget
+          body.type = 'SAM Record Transfer'
+          body.requirement = `Compliance from ${item.awardIdPiid}`
+        }
+        await api.post(endpoints[transferEntity], body)
+      }
+      toast('success', `Transferred ${selectedItems.length} records to ${transferEntity}`)
+      setTransferModalOpen(false)
+      setTransferTarget('')
+      setSelectedIds(new Set())
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Transfer failed')
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === data.items.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(data.items.map(r => r.id as string)))
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) setSortOrder(p => p === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(field); setSortOrder('asc') }
+    setPage(1)
+  }
 
   const totalPages = Math.max(1, Math.ceil(data.total / 20))
   const colCount = cols || columns.length + 1
@@ -137,8 +191,20 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
   const tableColumns = [
     {
       key: '_select', label: '',
-      headerRender: () => <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelectAll() }}>{selectedIds.size === data.items.length && data.items.length > 0 ? <CheckSquare size={16} className="text-[var(--primary)]" /> : <Square size={16} className="text-[var(--text-muted)]" />}</button>,
-      render: (row: Record<string, unknown>) => <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelect(row.id as string) }}>{selectedIds.has(row.id as string) ? <CheckSquare size={16} className="text-[var(--primary)]" /> : <Square size={16} className="text-[var(--text-muted)]" />}</button>,
+      headerRender: () => (
+        <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelectAll() }}>
+          {selectedIds.size === data.items.length && data.items.length > 0
+            ? <CheckSquare size={16} className="text-[var(--primary)]" />
+            : <Square size={16} className="text-[var(--text-muted)]" />}
+        </button>
+      ),
+      render: (row: Record<string, unknown>) => (
+        <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelect(row.id as string) }}>
+          {selectedIds.has(row.id as string)
+            ? <CheckSquare size={16} className="text-[var(--primary)]" />
+            : <Square size={16} className="text-[var(--text-muted)]" />}
+        </button>
+      ),
     },
     ...columns.map(col => ({
       key: col.key,
@@ -150,15 +216,22 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
       ) : undefined,
       render: col.render || ((row: Record<string, unknown>) => <span className="text-[12px]">{String(row[col.key] ?? '-')}</span>),
     })),
-    { key: 'actions', label: '', render: (row: Record<string, unknown>) => <Link href={`${endpoint.replace('/api', '')}/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()}><Eye size={16} className="text-[var(--text-muted)]" /></Link> },
+    {
+      key: 'actions', label: '',
+      render: (row: Record<string, unknown>) => (
+        <Link href={`${endpoint.replace('/api', '')}/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()}>
+          <Eye size={16} className="text-[var(--text-muted)]" />
+        </Link>
+      )
+    },
   ]
 
   return (
     <div>
       <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+
       <PageHeader title={entityName} subtitle={`${data.total} ${entityName.toLowerCase()}`} actions={
         <div className="flex gap-2">
-          {extraActions}
           <button onClick={handleExportCSV} disabled={exporting || data.total === 0}
             className="flex items-center gap-2 matdash-btn matdash-btn-outline px-3 py-1.5 rounded-md text-[11px] disabled:opacity-50 transition-colors">
             <FileSpreadsheet size={16} /> {exporting ? 'Exporting...' : 'Export CSV'}
@@ -170,6 +243,17 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
           )}
         </div>
       } />
+
+      {/* Bulk Action Toolbar */}
+      <BulkActions
+        selectedCount={selectedIds.size}
+        onClearSelection={clearSelection}
+        onExportSelected={handleExportSelected}
+        onDeleteSelected={() => setShowDeleteConfirm(true)}
+        onTransferSelected={() => setTransferModalOpen(true)}
+        onEmailSelected={() => setEmailModalOpen(true)}
+        entityName={entityName.toLowerCase()}
+      />
 
       <div className="mb-3">
         <div className="flex items-center gap-2 mb-2">
@@ -222,6 +306,40 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
         title={`Delete Selected ${entityName}`} message={`Are you sure you want to delete ${selectedIds.size} selected ${entityName.toLowerCase()}? This action cannot be undone.`} />
       <ConfirmDialog open={showDeleteAllConfirm} onClose={() => setShowDeleteAllConfirm(false)} onConfirm={handleDeleteAll}
         title={`Delete All ${entityName}`} message={`Are you sure you want to delete ALL ${data.total} ${entityName.toLowerCase()}? This action cannot be undone.`} />
+
+      <Modal open={transferModalOpen} onClose={() => setTransferModalOpen(false)} title="Transfer SAM Records">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Transfer to entity type</label>
+            <select value={transferEntity} onChange={e => setTransferEntity(e.target.value as typeof transferEntity)}
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)]">
+              <option value="contract">Contract</option>
+              <option value="outreach">Outreach</option>
+              <option value="compliance">Compliance</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Contractor ID</label>
+            <input type="text" value={transferTarget} onChange={e => setTransferTarget(e.target.value)}
+              className="w-full px-3 py-2 border border-[var(--border-color)] rounded-lg text-[13px] bg-[var(--card-bg)] text-[var(--text-primary)]"
+              placeholder="Enter contractor ID" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setTransferModalOpen(false)} className="matdash-btn matdash-btn-outline text-[12px]">Cancel</button>
+            <button onClick={handleTransfer} className="matdash-btn matdash-btn-primary text-[12px]">
+              <ArrowRightLeft size={14} className="inline mr-1" /> Transfer
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <EmailModal
+        open={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        records={data.items.filter(item => selectedIds.has(item.id as string)) as unknown as SAMRecord[]}
+        mode={selectedIds.size > 1 ? 'bulk' : 'quick'}
+        onComplete={() => { fetchData() }}
+      />
     </div>
   )
 }

@@ -242,6 +242,7 @@ export async function initDatabase(): Promise<{ success: boolean; tables: number
     `ALTER TABLE company_settings ADD COLUMN duns TEXT`,
     `ALTER TABLE company_settings ADD COLUMN smtp_from_name TEXT`,
     `ALTER TABLE company_settings ADD COLUMN smtp_from_email TEXT`,
+    `ALTER TABLE contacts ADD COLUMN source TEXT`,
   ]
   for (const sql of ALTERS) {
     try { await client.execute(sql) } catch { /* column already exists */ }
