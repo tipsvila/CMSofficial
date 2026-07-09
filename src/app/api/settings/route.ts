@@ -4,6 +4,7 @@ import { companySettings } from '@/lib/schema'
 import { ensureDb } from '@/lib/db-ready'
 import { clearSettingsCache } from '@/lib/company-settings'
 import { eq } from 'drizzle-orm'
+import { requireAuth } from '@/lib/auth-check'
 
 export async function GET() {
   try {
@@ -21,6 +22,10 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    // Require admin auth for settings updates
+    const auth = requireAuth()
+    if ('error' in auth) return auth.error
+
     await ensureDb()
     const body = await request.json()
 

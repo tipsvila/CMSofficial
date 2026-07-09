@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import jsPDF from 'jspdf'
 import { getCompanySettings } from '@/lib/company-settings'
+import { requireAuth } from '@/lib/auth-check'
 
 const C = {
   primary: [37, 99, 235] as [number, number, number],
@@ -80,6 +81,10 @@ function bulletItem(doc: jsPDF, text: string, y: number): number {
 
 export async function GET() {
   try {
+    // Require auth for capabilities PDF (contains sensitive company data)
+    const auth = requireAuth()
+    if ('error' in auth) return auth.error
+
     const s = await getCompanySettings()
     const doc = new jsPDF()
     const w = doc.internal.pageSize.getWidth()

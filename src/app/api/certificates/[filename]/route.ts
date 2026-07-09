@@ -16,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid filename' }, { status: 400 })
     }
 
-    if (!safeName.endsWith('.pdf') && !safeName.endsWith('.png') && !safeName.endsWith('.jpg') && !safeName.endsWith('.svg')) {
+    if (!safeName.endsWith('.pdf') && !safeName.endsWith('.png') && !safeName.endsWith('.jpg')) {
       return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 })
     }
 
@@ -28,7 +28,6 @@ export async function GET(
       pdf: 'application/pdf',
       png: 'image/png',
       jpg: 'image/jpeg',
-      svg: 'image/svg+xml',
     }
 
     return new NextResponse(data, {
