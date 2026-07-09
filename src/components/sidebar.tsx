@@ -15,9 +15,9 @@ const navigation: NavGroup[] = [
   ]},
   { title: 'CRM', items: [
     { name: 'SAM Data', href: '/sam-data', icon: Globe },
+    { name: 'Contacts', href: '/contacts', icon: Users },
     { name: 'Contracts', href: '/contracts', icon: FileText },
     { name: 'Contractors', href: '/contractors', icon: Users },
-    { name: 'Contacts', href: '/contacts', icon: Users },
     { name: 'Outreach', href: '/outreach', icon: Send },
     { name: 'Compliance', href: '/compliance', icon: Shield },
     { name: 'Inquiries', href: '/inquiries', icon: ClipboardList },
