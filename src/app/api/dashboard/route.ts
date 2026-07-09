@@ -1,13 +1,41 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { SAMData, contractors, outreach, compliance, inquiries, rfqs, orders, notifications } from '@/lib/schema'
-import { eq, count, sum, sql } from 'drizzle-orm'
+import { eq, count, sum, sql, and, gte, lte, ilike } from 'drizzle-orm'
 import { ensureDb } from '@/lib/db-ready'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await ensureDb()
-
+    
+    // Parse query parameters for filtering
+    const { searchParams } = new URL(request.url)
+    const dateRange = searchParams.get('dateRange') // e.g., "2024-01-01,2024-12-31"
+    const agency = searchParams.get('agency')
+    const status = searchParams.get('status')
+    
+    // Build filter conditions
+    const filters: any[] = []
+    
+    if (dateRange) {
+      const [startDate, endDate] = dateRange.split(',')
+      if (startDate && endDate) {
+        filters.push(gte(SAMData.createdAt, new Date(startDate)))
+        filters.push(lte(SAMData.createdAt, new Date(endDate)))
+      }
+    }
+    
+    if (agency) {
+      filters.push(ilike(SAMData.agencyName, `%${agency}%`))
+    }
+    
+    if (status) {
+      filters.push(eq(SAMData.status, status))
+    }
+    
+    // Apply filters to queries
+    const whereClause = filters.length > 0 ? and(...filters) : undefined
+    
     const [
       totalContracts,
       totalContractors,
@@ -28,8 +56,13 @@ export async function GET() {
       totalValueResult,
       revenueResult,
       agencyRaw,
+      // Add trends data queries
+      monthlyContracts,
+      monthlyOutreach,
+      monthlyInquiries,
     ] = await Promise.all([
-      db.select({ value: count() }).from(SAMData),
+      // Basic counts (with filters where applicable)
+      db.select({ value: count() }).from(SAMData).where(whereClause),
       db.select({ value: count() }).from(contractors).where(eq(contractors.isActive, true)),
       db.select({ value: count() }).from(outreach),
       db.select({ value: count() }).from(outreach).where(eq(outreach.status, 'Pending')),
@@ -56,7 +89,7 @@ export async function GET() {
         .leftJoin(contractors, eq(outreach.contractorId, contractors.id))
         .orderBy(sql`${outreach.createdAt} DESC`)
         .limit(5),
-      db.select({ value: sum(SAMData.obligatedAmount) }).from(SAMData),
+      db.select({ value: sum(SAMData.obligatedAmount) }).from(SAMData).where(whereClause),
       db.select({ value: sum(orders.totalAmount) }).from(orders).where(sql`${orders.status} IN ('Completed', 'Delivered')`),
       db.select({
         agency: SAMData.agencyName,
@@ -67,6 +100,32 @@ export async function GET() {
         .groupBy(SAMData.agencyName)
         .orderBy(sql`sum(${SAMData.obligatedAmount}) DESC`)
         .limit(5),
+      // Trends data - monthly contracts
+      db.select({
+        month: sql`DATE_FORMAT(${SAMData.createdAt}, '%Y-%m')`,
+        count: count(),
+        total: sum(SAMData.obligatedAmount),
+      }).from(SAMData)
+        .where(whereClause)
+        .groupBy(sql`DATE_FORMAT(${SAMData.createdAt}, '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(${SAMData.createdAt}, '%Y-%m')`)
+        .limit(12),
+      // Trends data - monthly outreach
+      db.select({
+        month: sql`DATE_FORMAT(${outreach.createdAt}, '%Y-%m')`,
+        count: count(),
+      }).from(outreach)
+        .groupBy(sql`DATE_FORMAT(${outreach.createdAt}, '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(${outreach.createdAt}, '%Y-%m')`)
+        .limit(12),
+      // Trends data - monthly inquiries
+      db.select({
+        month: sql`DATE_FORMAT(${inquiries.createdAt}, '%Y-%m')`,
+        count: count(),
+      }).from(inquiries)
+        .groupBy(sql`DATE_FORMAT(${inquiries.createdAt}, '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(${inquiries.createdAt}, '%Y-%m')`)
+        .limit(12),
     ])
 
     const totalContractValue = Number(totalValueResult[0]?.value || 0)
@@ -75,6 +134,23 @@ export async function GET() {
     const complianceMap: Record<string, number> = {}
     for (const row of complianceStats) {
       complianceMap[row.status] = row.cnt
+    }
+
+    // Format trends data for charts
+    const trends = {
+      contracts: monthlyContracts.map((r) => ({
+        month: r.month,
+        count: r.count,
+        total: Number(r.total || 0),
+      })),
+      outreach: monthlyOutreach.map((r) => ({
+        month: r.month,
+        count: r.count,
+      })),
+      inquiries: monthlyInquiries.map((r) => ({
+        month: r.month,
+        count: r.count,
+      })),
     }
 
     return NextResponse.json({
@@ -112,6 +188,12 @@ export async function GET() {
         count: r.cnt,
         total: Number(r.total || 0),
       })),
+      trends,
+      filters: {
+        dateRange,
+        agency,
+        status,
+      },
     })
   } catch (error) {
     console.error('GET /api/dashboard error:', error)
