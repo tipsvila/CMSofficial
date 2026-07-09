@@ -9,7 +9,7 @@ import { BulkActions } from '@/components/sam-data/bulk-actions'
 import { TransferModal } from '@/components/sam-data/transfer-modal'
 import { EmailModal } from '@/components/sam-data/email-modal'
 import { ComplianceModal } from '@/components/sam-data/compliance-modal'
-import { Plus, Search, Eye, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Plus, Search, Eye, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2, ArrowRightLeft } from 'lucide-react'
 import { SortIcon } from '@/components/sort-icon'
 import Link from 'next/link'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -209,6 +209,10 @@ export default function SAMDataPage() {
 
       <PageHeader title="SAM Data" subtitle={`${data.total} SAM records`} actions={
         <div className="flex gap-2">
+          <button onClick={() => setTransferModalOpen(true)} disabled={data.total === 0}
+            className="flex items-center gap-2 matdash-btn matdash-btn-outline px-3 py-1.5 rounded-md text-[11px] disabled:opacity-50 transition-colors">
+            <ArrowRightLeft size={16} /> Transfer
+          </button>
           <button onClick={handleExportCSV} disabled={exporting || data.total === 0}
             className="flex items-center gap-2 matdash-btn matdash-btn-outline px-3 py-1.5 rounded-md text-[11px] disabled:opacity-50 transition-colors">
             <FileSpreadsheet size={16} /> {exporting ? 'Exporting...' : 'Export CSV'}
