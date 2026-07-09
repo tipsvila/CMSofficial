@@ -11,9 +11,10 @@ echo   1. Dev Server (port 3000)
 echo   2. Dev Server (port 3005)
 echo   3. Dev Server (port 3002)
 echo   4. Build + Production Server
-echo   5. Exit
+echo   5. Clear Cache Only
+echo   6. Exit
 echo.
-set /p choice=Select (1-5):
+set /p choice=Select (1-6):
 
 if "%choice%"=="1" (
     echo.
@@ -40,6 +41,12 @@ if "%choice%"=="1" (
     echo Starting production server on http://localhost:3000 ...
     pnpm start
 ) else if "%choice%"=="5" (
+    echo.
+    echo Clearing .next cache...
+    pnpm clean
+    echo Cache cleared!
+    pause
+) else if "%choice%"=="6" (
     exit /b
 ) else (
     echo Invalid choice!
