@@ -36,6 +36,16 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/avif", "image/webp"],
   },
+  // ponytail: watchOptions prevents Turbopack HMR module reference errors
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      config.watchOptions = {
+        ignored: /node_modules/,
+        poll: 1000,
+      };
+    }
+    return config;
+  },
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },
