@@ -18,10 +18,12 @@ export async function GET(request: Request) {
     const filters: any[] = []
     
     if (dateRange) {
-      const [startDate, endDate] = dateRange.split(',')
+      const parts = dateRange.split(',')
+      const startDate = parts[0]?.trim()
+      const endDate = parts[1]?.trim()
       if (startDate && endDate) {
-        filters.push(gte(SAMData.createdAt, new Date(startDate)))
-        filters.push(lte(SAMData.createdAt, new Date(endDate)))
+        filters.push(gte(SAMData.createdAt, startDate))
+        filters.push(lte(SAMData.createdAt, endDate))
       }
     }
     
@@ -100,31 +102,31 @@ export async function GET(request: Request) {
         .groupBy(SAMData.agencyName)
         .orderBy(sql`sum(${SAMData.obligatedAmount}) DESC`)
         .limit(5),
-      // Trends data - monthly contracts
+      // Trends data - monthly contracts (SQLite strftime)
       db.select({
-        month: sql`DATE_FORMAT(${SAMData.createdAt}, '%Y-%m')`,
+        month: sql`strftime('%Y-%m', ${SAMData.createdAt})`,
         count: count(),
         total: sum(SAMData.obligatedAmount),
       }).from(SAMData)
         .where(whereClause)
-        .groupBy(sql`DATE_FORMAT(${SAMData.createdAt}, '%Y-%m')`)
-        .orderBy(sql`DATE_FORMAT(${SAMData.createdAt}, '%Y-%m')`)
+        .groupBy(sql`strftime('%Y-%m', ${SAMData.createdAt})`)
+        .orderBy(sql`strftime('%Y-%m', ${SAMData.createdAt})`)
         .limit(12),
-      // Trends data - monthly outreach
+      // Trends data - monthly outreach (SQLite strftime)
       db.select({
-        month: sql`DATE_FORMAT(${outreach.createdAt}, '%Y-%m')`,
+        month: sql`strftime('%Y-%m', ${outreach.createdAt})`,
         count: count(),
       }).from(outreach)
-        .groupBy(sql`DATE_FORMAT(${outreach.createdAt}, '%Y-%m')`)
-        .orderBy(sql`DATE_FORMAT(${outreach.createdAt}, '%Y-%m')`)
+        .groupBy(sql`strftime('%Y-%m', ${outreach.createdAt})`)
+        .orderBy(sql`strftime('%Y-%m', ${outreach.createdAt})`)
         .limit(12),
-      // Trends data - monthly inquiries
+      // Trends data - monthly inquiries (SQLite strftime)
       db.select({
-        month: sql`DATE_FORMAT(${inquiries.createdAt}, '%Y-%m')`,
+        month: sql`strftime('%Y-%m', ${inquiries.createdAt})`,
         count: count(),
       }).from(inquiries)
-        .groupBy(sql`DATE_FORMAT(${inquiries.createdAt}, '%Y-%m')`)
-        .orderBy(sql`DATE_FORMAT(${inquiries.createdAt}, '%Y-%m')`)
+        .groupBy(sql`strftime('%Y-%m', ${inquiries.createdAt})`)
+        .orderBy(sql`strftime('%Y-%m', ${inquiries.createdAt})`)
         .limit(12),
     ])
 
