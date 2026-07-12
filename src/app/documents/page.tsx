@@ -50,6 +50,7 @@ export default function DocumentsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -90,6 +91,16 @@ export default function DocumentsPage() {
       toast('success', `Imported ${result.imported} documents`); fetchData()
     } catch { toast('error', 'Import failed') }
     finally { setImporting(false); if (fileInputRef.current) fileInputRef.current.value = '' }
+  }
+
+  const handleDeleteSingle = async () => {
+    if (!deleteTarget) return
+    try {
+      const res = await fetch('/api/documents/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [deleteTarget] }) })
+      const result = await res.json()
+      if (!res.ok) { toast('error', result.error || 'Delete failed'); return }
+      toast('success', 'Document deleted'); setDeleteTarget(null); fetchData()
+    } catch { toast('error', 'Delete failed') }
   }
 
   const handleBulkDelete = async () => {
@@ -172,7 +183,7 @@ export default function DocumentsPage() {
             { key: 'fileType', label: 'Type', headerRender: () => <button onClick={(e) => { e.stopPropagation(); handleSort('fileType') }} className="flex items-center gap-1 hover:text-[var(--primary)]">Type <SortIcon sortBy={sortBy} sortOrder={sortOrder} field="fileType" /></button>, render: (row) => { const badge = getFileTypeBadge(row.fileType as string); return <Badge variant={badge.variant}>{badge.label}</Badge> } },
             { key: 'fileSize', label: 'Size', render: (row) => <span className="text-[11px] text-[var(--text-muted)]">{formatFileSize(row.fileSize as number)}</span> },
             { key: 'createdAt', label: 'Uploaded', headerRender: () => <button onClick={(e) => { e.stopPropagation(); handleSort('createdAt') }} className="flex items-center gap-1 hover:text-[var(--primary)]">Uploaded <SortIcon sortBy={sortBy} sortOrder={sortOrder} field="createdAt" /></button>, render: (row) => <span className="text-[11px] text-[var(--text-muted)]">{row.createdAt ? new Date(String(row.createdAt)).toLocaleDateString() : '-'}</span> },
-            { key: 'actions', label: '', render: (row) => <button className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={(e) => { e.stopPropagation(); router.push(`/documents/${row.id}`) }}><Eye size={16} className="text-[var(--text-muted)]" /></button> },
+            { key: 'actions', label: '', render: (row) => <div className="flex items-center gap-1"><button className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={(e) => { e.stopPropagation(); router.push(`/documents/${row.id}`) }}><Eye size={16} className="text-[var(--text-muted)]" /></button><button className="p-1 hover:bg-red-500/10 rounded" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.id as string) }}><Trash2 size={14} className="text-[var(--danger)]" /></button></div> },
           ]} data={data.documents as unknown as Record<string, unknown>[]} onRowClick={(row) => router.push(`/documents/${row.id}`)} />
 
           <div className="flex items-center justify-between mt-4 text-[11px] text-[var(--text-muted)]">
@@ -188,6 +199,8 @@ export default function DocumentsPage() {
         </>
       )}
 
+      <ConfirmDialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteSingle}
+        title="Delete Document" message="Are you sure you want to delete this document? This action cannot be undone." />
       <ConfirmDialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} onConfirm={handleBulkDelete}
         title="Delete Selected Documents" message={`Are you sure you want to delete ${selectedIds.size} selected document(s)? This action cannot be undone.`} />
       <ConfirmDialog open={showDeleteAllConfirm} onClose={() => setShowDeleteAllConfirm(false)} onConfirm={handleDeleteAll}

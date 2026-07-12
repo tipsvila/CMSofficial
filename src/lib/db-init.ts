@@ -108,6 +108,7 @@ const TABLES = [
     status TEXT NOT NULL DEFAULT 'Draft',
     aog_flag INTEGER DEFAULT 0,
     contractor_id TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
@@ -243,6 +244,20 @@ export async function initDatabase(): Promise<{ success: boolean; tables: number
     `ALTER TABLE company_settings ADD COLUMN smtp_from_name TEXT`,
     `ALTER TABLE company_settings ADD COLUMN smtp_from_email TEXT`,
     `ALTER TABLE contacts ADD COLUMN source TEXT`,
+    `ALTER TABLE contacts ADD COLUMN uei TEXT`,
+    `ALTER TABLE contacts ADD COLUMN duns TEXT`,
+    `ALTER TABLE contacts ADD COLUMN address TEXT`,
+    `ALTER TABLE contacts ADD COLUMN city TEXT`,
+    `ALTER TABLE contacts ADD COLUMN state TEXT`,
+    `ALTER TABLE contacts ADD COLUMN zip_code TEXT`,
+    `ALTER TABLE contacts ADD COLUMN contact1 TEXT`,
+    `ALTER TABLE contacts ADD COLUMN email1 TEXT`,
+    `ALTER TABLE contacts ADD COLUMN contact2 TEXT`,
+    `ALTER TABLE contacts ADD COLUMN email2 TEXT`,
+    `ALTER TABLE contacts ADD COLUMN contact3 TEXT`,
+    `ALTER TABLE contacts ADD COLUMN email3 TEXT`,
+    `ALTER TABLE contacts ADD COLUMN website TEXT`,
+    `ALTER TABLE rfqs ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`,
   ]
   for (const sql of ALTERS) {
     try { await client.execute(sql) } catch { /* column already exists */ }

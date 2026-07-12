@@ -27,7 +27,7 @@ function addHeader(doc: jsPDF, settings: Record<string, unknown>) {
 
   doc.setFontSize(9)
   doc.setTextColor(147, 197, 253)
-  doc.text((settings.tagline as string) || 'Aviation Federal Contract Management', 36, 25)
+  doc.text((settings.tagline as string) || '', 36, 25)
 
   doc.setFontSize(8)
   doc.setTextColor(200, 210, 230)
@@ -108,12 +108,12 @@ export async function GET() {
     y = fieldRow(doc, 'SAM.gov UEI', s.uei as string || '', y)
     y = fieldRow(doc, 'CAGE/NCAGE Code', `${s.cageCode || ''} (Active)`, y)
     y = fieldRow(doc, 'FBR/NTN Tax ID', s.taxId as string || '', y)
-    y = fieldRow(doc, 'SAM.gov Status', (s.samGovStatus as string) || 'Submitted Registration', y)
-    y = fieldRow(doc, 'Registration Purpose', (s.registrationPurpose as string) || 'All Awards', y)
+    y = fieldRow(doc, 'SAM.gov Status', (s.samGovStatus as string) || '—', y)
+    y = fieldRow(doc, 'Registration Purpose', (s.registrationPurpose as string) || '—', y)
     y += 8
 
     y = sectionTitle(doc, 'NAICS CLASSIFICATIONS', y)
-    const naicsList = (s.naicsCodes as string || '423860, 488190, 518210, 541512').split(',').map((n) => n.trim())
+    const naicsList = ((s.naicsCodes as string) || '').split(',').map((n) => n.trim()).filter(Boolean)
     let naicsDescs: Record<string, string> = {}
     try { naicsDescs = JSON.parse(s.naicsDescriptions as string || '{}') } catch {}
     for (const code of naicsList) {
@@ -129,7 +129,7 @@ export async function GET() {
     y += 5
 
     y = sectionTitle(doc, 'CERTIFICATIONS & STANDARDS', y)
-    const certs = (s.certifications as string || 'FAA Form 8130-3, AS9120 Quality Management, AS9110 Maintenance Standards').split(',').map((c: string) => c.trim())
+    const certs = ((s.certifications as string) || '').split(',').map((c: string) => c.trim()).filter(Boolean)
     for (const cert of certs) {
       doc.setFont('zapfdingbats', 'normal')
       doc.setFontSize(10)
@@ -148,7 +148,7 @@ export async function GET() {
     doc.text('Compliance Frameworks:  ', 24, y)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(37, 99, 235)
-    doc.text((s.complianceFrameworks as string || 'FAR, DFARS, CMMC, ITAR').split(',').join('  |  '), 80, y)
+    doc.text(((s.complianceFrameworks as string) || '').split(',').join('  |  '), 80, y)
 
     addFooter(doc, y + 10, s.companyName as string)
 
@@ -199,14 +199,7 @@ export async function GET() {
     doc.text('Details', 80, y + 5.5)
     y += 8
 
-    let tableData = [
-      ['Compliance', 'FAA 8130-3, AS9120/9110, FAR/DFARS aligned'],
-      ['Sourcing', 'OEM & PMA parts with global logistics network'],
-      ['Traceability', 'Complete chain-of-custody and CoC documentation'],
-      ['Reach', 'SAM.gov registered, DLA CAGE certified'],
-      ['Quality', 'Strictest alignment with FAA Form 8130-3 standards'],
-      ['IT Services', 'Data processing, systems design, web infrastructure'],
-    ]
+    let tableData: string[][] = []
     try {
       const parsed = JSON.parse(s.serviceHighlights as string || '[]')
       if (Array.isArray(parsed) && parsed.length > 0) tableData = parsed
@@ -237,16 +230,7 @@ export async function GET() {
 
     y = sectionTitle(doc, `WHY CHOOSE ${((s.companyName as string) || 'CMS').toUpperCase()}`, y)
 
-    let reasons = [
-      'SAM.gov registered entity with active CAGE code',
-      'FAA Form 8130-3 and AS9120 compliant quality systems',
-      'End-to-end contract management CMS with real-time tracking',
-      'Global aviation parts sourcing network with full traceability',
-      'FAR/DFARS, CMMC, and ITAR compliance ready',
-      'Dedicated defense logistics support with NATO standards',
-      'Data-driven price intelligence and anomaly detection',
-      'Automated RFQ matching and quote management',
-    ]
+    let reasons: string[] = []
     try {
       const parsed = JSON.parse(s.whyChooseUs as string || '[]')
       if (Array.isArray(parsed) && parsed.length > 0) reasons = parsed

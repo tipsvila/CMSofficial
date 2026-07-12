@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { FileSpreadsheet, Trash2, ArrowRightLeft, Mail, X } from 'lucide-react'
 
 interface BulkActionsProps {
@@ -12,7 +13,7 @@ interface BulkActionsProps {
   entityName?: string
 }
 
-export function BulkActions({
+export const BulkActions = memo(function BulkActions({
   selectedCount,
   onClearSelection,
   onExportSelected,
@@ -56,4 +57,4 @@ export function BulkActions({
       </div>
     </div>
   )
-}
+})

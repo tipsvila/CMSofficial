@@ -61,22 +61,22 @@ export async function GET(request: Request) {
       monthlyOutreach,
       monthlyInquiries,
     ] = await Promise.all([
-      // Basic counts (with filters where applicable)
-      db.select({ value: count() }).from(SAMData).where(whereClause),
-      db.select({ value: count() }).from(contractors).where(eq(contractors.isActive, true)),
-      db.select({ value: count() }).from(outreach),
-      db.select({ value: count() }).from(outreach).where(eq(outreach.status, 'Pending')),
+      // Basic counts — filter is_active=1 to match what pages show
       db.select({ value: count() }).from(SAMData).where(eq(SAMData.isActive, true)),
-      db.select({ value: count() }).from(inquiries),
-      db.select({ value: count() }).from(inquiries).where(sql`${inquiries.status} IN ('Draft', 'Open', 'Quoted')`),
-      db.select({ value: count() }).from(inquiries).where(eq(inquiries.status, 'Won')),
-      db.select({ value: count() }).from(rfqs),
-      db.select({ value: count() }).from(rfqs).where(eq(rfqs.status, 'Published')),
-      db.select({ value: count() }).from(rfqs).where(eq(rfqs.status, 'Awarded')),
+      db.select({ value: count() }).from(contractors).where(eq(contractors.isActive, true)),
+      db.select({ value: count() }).from(outreach).where(eq(outreach.isActive, true)),
+      db.select({ value: count() }).from(outreach).where(and(eq(outreach.status, 'Pending'), eq(outreach.isActive, true))),
+      db.select({ value: count() }).from(SAMData).where(eq(SAMData.isActive, true)),
+      db.select({ value: count() }).from(inquiries).where(eq(inquiries.isActive, true)),
+      db.select({ value: count() }).from(inquiries).where(and(sql`${inquiries.status} IN ('Draft', 'Open', 'Quoted')`, eq(inquiries.isActive, true))),
+      db.select({ value: count() }).from(inquiries).where(and(eq(inquiries.status, 'Won'), eq(inquiries.isActive, true))),
+      db.select({ value: count() }).from(rfqs).where(eq(rfqs.isActive, true)),
+      db.select({ value: count() }).from(rfqs).where(and(eq(rfqs.status, 'Published'), eq(rfqs.isActive, true))),
+      db.select({ value: count() }).from(rfqs).where(and(eq(rfqs.status, 'Awarded'), eq(rfqs.isActive, true))),
       db.select({ value: count() }).from(orders),
       db.select({ value: count() }).from(orders).where(eq(orders.status, 'Pending')),
       db.select({ value: count() }).from(notifications).where(eq(notifications.isRead, false)),
-      db.select({ status: compliance.status, cnt: count() }).from(compliance).groupBy(compliance.status),
+      db.select({ status: compliance.status, cnt: count() }).from(compliance).where(eq(compliance.isActive, true)).groupBy(compliance.status),
       db.select({
         id: outreach.id,
         contractorId: outreach.contractorId,
@@ -87,16 +87,17 @@ export async function GET(request: Request) {
         contractorName: contractors.name,
       }).from(outreach)
         .leftJoin(contractors, eq(outreach.contractorId, contractors.id))
+        .where(eq(outreach.isActive, true))
         .orderBy(sql`${outreach.createdAt} DESC`)
         .limit(5),
-      db.select({ value: sum(SAMData.obligatedAmount) }).from(SAMData).where(whereClause),
+      db.select({ value: sum(SAMData.obligatedAmount) }).from(SAMData).where(eq(SAMData.isActive, true)),
       db.select({ value: sum(orders.totalAmount) }).from(orders).where(sql`${orders.status} IN ('Completed', 'Delivered')`),
       db.select({
         agency: SAMData.agencyName,
         cnt: count(),
         total: sum(SAMData.obligatedAmount),
       }).from(SAMData)
-        .where(sql`${SAMData.agencyName} IS NOT NULL AND ${SAMData.isActive} = 1`)
+        .where(and(sql`${SAMData.agencyName} IS NOT NULL`, eq(SAMData.isActive, true)))
         .groupBy(SAMData.agencyName)
         .orderBy(sql`sum(${SAMData.obligatedAmount}) DESC`)
         .limit(5),
@@ -178,11 +179,13 @@ export async function GET(request: Request) {
         totalRecords: totalContracts[0]?.value || 0,
         activeContracts: activeContracts[0]?.value || 0,
         pipelineValue: totalContractValue,
-        topAgencies: agencyRaw.map((r) => ({
-          agency: r.agency || 'Unknown',
-          count: r.cnt,
-          total: Number(r.total || 0),
-        })),
+        topAgencies: agencyRaw
+          .filter((r) => Number(r.total || 0) > 0)
+          .map((r) => ({
+            agency: r.agency || 'Unknown',
+            count: r.cnt,
+            total: Number(r.total || 0),
+          })),
       },
       recentOutreach: recentOutreach.map((r) => ({
         id: r.id,

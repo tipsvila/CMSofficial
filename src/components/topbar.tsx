@@ -1,7 +1,8 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { Bell, Search, Moon, Sun } from 'lucide-react'
+import { Search, Moon, Sun } from 'lucide-react'
+import { NotificationBell } from './notification-bell'
 import { useState, useEffect } from 'react'
 import { useSettings } from '@/lib/settings-context'
 
@@ -20,6 +21,9 @@ const pageNames: Record<string, string> = {
   '/documents': 'Documents',
   '/orders': 'Orders',
   '/notifications': 'Notifications',
+  '/rfqs': 'RFQs',
+  '/sam-data': 'SAM Data',
+  '/login': 'Login',
 }
 
 function resolvePageName(pathname: string): string {
@@ -31,6 +35,8 @@ function resolvePageName(pathname: string): string {
   if (pathname.startsWith('/inquiries/')) return 'Inquiry Details'
   if (pathname.startsWith('/contracts/')) return 'Contract Details'
   if (pathname.startsWith('/orders/')) return 'Order Details'
+  if (pathname.startsWith('/rfqs/')) return 'RFQ Details'
+  if (pathname.startsWith('/sam-data/')) return 'SAM Data Details'
   return 'Dashboard'
 }
 
@@ -66,7 +72,7 @@ export function Topbar() {
           )}
           <div>
             <h1 className="text-lg font-bold text-[var(--text-primary)]">{pageName}</h1>
-            <p className="text-[11px] text-[var(--text-muted)]">{settings.companyName} / {pageName}</p>
+            {settings.companyName && <p className="text-[11px] text-[var(--text-muted)]">{settings.companyName} / {pageName}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -76,10 +82,7 @@ export function Topbar() {
           <button onClick={toggleDarkMode} className="p-2 rounded-lg hover:bg-[var(--primary-light)] text-[var(--text-secondary)]">
             {darkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button className="p-2 rounded-lg hover:bg-[var(--primary-light)] text-[var(--text-secondary)] relative">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--danger)] rounded-full" />
-          </button>
+          <NotificationBell />
         </div>
       </div>
       {searchOpen && (

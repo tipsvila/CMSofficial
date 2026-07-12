@@ -1,5 +1,5 @@
 'use client'
-import { ReactNode } from 'react'
+import { memo, ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -15,13 +15,13 @@ export function Badge({ variant, children, className }: BadgeProps) {
   return <span className={cn(badgeVariants[variant], className)}>{children}</span>
 }
 
-interface DataTableProps {
-  columns: { key: string; label: string; headerRender?: () => ReactNode; render?: (row: Record<string, unknown>) => ReactNode }[]
-  data: Record<string, unknown>[]
+interface DataTableProps<T = Record<string, unknown>> {
+  columns: { key: string; label: string; headerRender?: () => ReactNode; render?: (row: T) => ReactNode }[]
+  data: T[]
   emptyMessage?: string
-  onRowClick?: (row: Record<string, unknown>) => void
+  onRowClick?: (row: T) => void
 }
-export function DataTable({ columns, data, emptyMessage = 'No data found', onRowClick }: DataTableProps) {
+export const DataTable = memo(function DataTable<T = Record<string, unknown>>({ columns, data, emptyMessage = 'No data found', onRowClick }: DataTableProps<T>) {
   const rows = Array.isArray(data) ? data : []
   return (
     <div className="matdash-card p-0 overflow-hidden">
@@ -34,9 +34,9 @@ export function DataTable({ columns, data, emptyMessage = 'No data found', onRow
             {rows.length === 0 ? (
               <tr><td colSpan={columns.length} className="text-center py-8 text-[var(--text-muted)]">{emptyMessage}</td></tr>
             ) : rows.map((row, i) => (
-              <tr key={(row.id as string) || i} onClick={() => onRowClick?.(row)} className={onRowClick ? 'cursor-pointer' : ''}>
+              <tr key={((row as Record<string, unknown>).id as string) || i} onClick={() => onRowClick?.(row)} className={onRowClick ? 'cursor-pointer' : ''}>
                 {columns.map((col) => (
-                  <td key={col.key}>{col.render ? col.render(row) : String(row[col.key] ?? '-')}</td>
+                  <td key={col.key}>{col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '-')}</td>
                 ))}
               </tr>
             ))}
@@ -45,7 +45,7 @@ export function DataTable({ columns, data, emptyMessage = 'No data found', onRow
       </div>
     </div>
   )
-}
+})
 
 interface ConfirmDialogProps {
   open: boolean

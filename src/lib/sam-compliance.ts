@@ -1,18 +1,8 @@
 // SAM compliance tracking utilities — wraps the compliance system for SAM-specific workflows
 import { api } from '@/lib/api-client'
+import type { SAMRecord } from '@/lib/sam-email'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface SAMRecord {
-  id: string
-  awardIdPiid: string
-  recipientName: string
-  totalObligatedAmount?: number | null
-  periodOfPerformanceCurrentEndDate?: string | null
-  naicsDescription?: string | null
-  productOrServiceCodeDescription?: string | null
-  awardingAgencyName?: string | null
-}
+export type { SAMRecord }
 
 export type CompliancePriority = 'High' | 'Medium' | 'Low'
 

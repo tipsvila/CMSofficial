@@ -73,26 +73,10 @@ export default function DashboardPage() {
 
         {/* Row 1: Core Business Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <StatCard title="Total Contracts" value={stats.totalContracts || 0} trend={{ value: 12, isPositive: true }} comparison={`${stats.activeContracts || 0} active`} icon={<FileText size={22} />} color="primary" />
-          <StatCard title="Contract Value" value={formatCurrency(stats.totalContractValue || 0)} trend={{ value: 8, isPositive: true }} icon={<DollarSign size={22} />} color="success" />
-          <StatCard title="Contractors" value={stats.totalContractors || 0} icon={<Building2 size={22} />} color="primary" />
-          <StatCard title="Revenue" value={formatCurrency(stats.totalRevenue || 0)} trend={{ value: 5, isPositive: true }} comparison={`${stats.totalOrders || 0} orders`} icon={<TrendingUp size={22} />} color="success" />
-        </div>
-
-        {/* Row 2: SAM Data Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <StatCard title="SAM Records" value={data.samData?.totalRecords || 0} trend={{ value: 15, isPositive: true }} comparison={`${data.samData?.activeContracts || 0} active`} icon={<Database size={22} />} color="primary" />
-          <StatCard title="Pipeline Value" value={formatCurrency(data.samData?.pipelineValue || 0)} trend={{ value: 10, isPositive: true }} icon={<Target size={22} />} color="success" />
+          <StatCard title="SAM Contracts" value={stats.totalContracts || 0} comparison={`${stats.activeContracts || 0} active`} icon={<FileText size={22} />} color="primary" />
+          <StatCard title="Contract Value" value={formatCurrency(stats.totalContractValue || 0)} icon={<DollarSign size={22} />} color="success" />
           <StatCard title="Top Agencies" value={data.samData?.topAgencies?.length || 0} comparison={`${data.samData?.topAgencies?.reduce((sum, a) => sum + a.count, 0) || 0} contracts`} icon={<Building2 size={22} />} color="primary" />
-          <StatCard title="Active Tracking" value={data.samData?.activeContracts || 0} trend={{ value: 8, isPositive: true }} comparison={`${data.samData?.totalRecords || 0} total`} icon={<Activity size={22} />} color="warning" />
-        </div>
-
-        {/* Row 3: Procurement & RFQ Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <StatCard title="Open RFQs" value={stats.openRfqs || 0} comparison={`${stats.totalRfqs || 0} total`} icon={<Package size={22} />} color="primary" />
-          <StatCard title="Inquiries" value={stats.totalInquiries || 0} comparison={`${stats.wonInquiries || 0} won`} icon={<ClipboardCheck size={22} />} color="primary" />
-          <StatCard title="Outreach" value={stats.totalOutreach || 0} comparison={`${stats.pendingOutreach || 0} pending`} icon={<Mail size={22} />} color="warning" />
-          <StatCard title="Pending Orders" value={stats.pendingOrders || 0} icon={<ShoppingCart size={22} />} color="danger" />
+          <StatCard title="Compliance" value={totalCompliance || 0} comparison={`${compliancePct}% compliant`} icon={<ClipboardCheck size={22} />} color="success" />
         </div>
 
         {/* Row 4: Charts */}

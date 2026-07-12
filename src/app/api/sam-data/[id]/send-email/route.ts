@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rendered = await (fn as any)({
         recipientName: to.split('@')[0],
-        companyName: 'INTAEROBASE',
+        companyName: '',
         agency: sam.awarding_agency_name as string || '',
         contractValue: sam.total_obligated_amount != null ? `$${Number(sam.total_obligated_amount).toLocaleString()}` : '',
         subject: emailSubject,

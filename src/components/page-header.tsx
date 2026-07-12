@@ -18,9 +18,10 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
 
 interface StatCardProps {
   title: string; value: string | number; subtitle?: string; icon?: ReactNode;
-  color?: 'primary' | 'success' | 'warning' | 'danger' | 'secondary' | 'info'; className?: string;
+  color?: 'primary' | 'success' | 'warning' | 'danger' | 'secondary' | 'info';
+  trend?: { value: string; positive: boolean }; className?: string;
 }
-export function StatCard({ title, value, subtitle, icon, color = 'primary', className = '' }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon, color = 'primary', trend, className = '' }: StatCardProps) {
   return (
     <div className={`matdash-card flex items-center gap-4 ${className}`}>
       {icon && <div className={`stat-icon-box ${color}`}>{icon}</div>}
@@ -28,6 +29,11 @@ export function StatCard({ title, value, subtitle, icon, color = 'primary', clas
         <p className="text-[13px] font-medium text-[var(--text-secondary)]">{title}</p>
         <p className="text-2xl font-bold text-[var(--text-primary)] mt-0.5">{value}</p>
         {subtitle && <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{subtitle}</p>}
+        {trend && (
+          <p className={`text-[11px] font-semibold mt-1 ${trend.positive ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+            {trend.positive ? '↑' : '↓'} {trend.value}
+          </p>
+        )}
       </div>
     </div>
   )

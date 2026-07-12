@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { memo, useState, useCallback, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 
@@ -81,7 +81,7 @@ function FilterBadge({ label, onRemove }: { label: string; onRemove: () => void 
   )
 }
 
-export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
+export const FilterPanel = memo(function FilterPanel({ onFiltersChange }: FilterPanelProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [collapsed, setCollapsed] = useState(false)
@@ -245,4 +245,4 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
       )}
     </div>
   )
-}
+})

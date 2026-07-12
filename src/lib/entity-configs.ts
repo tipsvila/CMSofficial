@@ -9,6 +9,19 @@ const contactInsertMapper = (body: Record<string, unknown>, _id: string, _now: s
   (body.title as string) || null,
   (body.email as string) || null,
   (body.phone as string) || null,
+  (body.uei as string) || null,
+  (body.duns as string) || null,
+  (body.address as string) || null,
+  (body.city as string) || null,
+  (body.state as string) || null,
+  (body.zipCode as string) || null,
+  (body.contact1 as string) || null,
+  (body.email1 as string) || null,
+  (body.contact2 as string) || null,
+  (body.email2 as string) || null,
+  (body.contact3 as string) || null,
+  (body.email3 as string) || null,
+  (body.website as string) || null,
   body.isPrimary ? 1 : 0,
   (body.aviationContractId as string) || null,
   (body.source as string) || null,
@@ -20,6 +33,19 @@ const contactUpdateFields: FieldMapping[] = [
   { db: 'title' },
   { db: 'email' },
   { db: 'phone' },
+  { db: 'uei' },
+  { db: 'duns' },
+  { db: 'address' },
+  { db: 'city' },
+  { db: 'state' },
+  { db: 'zip_code', body: 'zipCode' },
+  { db: 'contact1' },
+  { db: 'email1' },
+  { db: 'contact2' },
+  { db: 'email2' },
+  { db: 'contact3' },
+  { db: 'email3' },
+  { db: 'website' },
   { db: 'is_primary', body: 'isPrimary', transform: (v) => v ? 1 : 0 },
   { db: 'aviation_contract_id', body: 'aviationContractId' },
 ]
@@ -28,9 +54,12 @@ export const contactsConfig: CrudConfig = {
   table: 'contacts', alias: 'c', entityName: 'Contact', responseKey: 'contacts',
   columns: {
     id: 'id', contractorId: 'contractor_id', firstName: 'first_name', lastName: 'last_name',
-    title: 'title', email: 'email', phone: 'phone', isPrimary: 'is_primary',
-    aviationContractId: 'aviation_contract_id', source: 'source', isActive: 'is_active',
-    createdAt: 'created_at', updatedAt: 'updated_at',
+    title: 'title', email: 'email', phone: 'phone', uei: 'uei', duns: 'duns',
+    address: 'address', city: 'city', state: 'state', zipCode: 'zip_code',
+    contact1: 'contact1', email1: 'email1', contact2: 'contact2', email2: 'email2',
+    contact3: 'contact3', email3: 'email3', website: 'website',
+    isPrimary: 'is_primary', aviationContractId: 'aviation_contract_id', source: 'source',
+    isActive: 'is_active', createdAt: 'created_at', updatedAt: 'updated_at',
   },
   joins: [{ table: 'contractors', alias: 'ct', on: 'c.contractor_id = ct.id', camelKey: 'contractor', nullValue: undefined }],
   sortColumns: {
@@ -38,17 +67,19 @@ export const contactsConfig: CrudConfig = {
     title: 'c.title', isPrimary: 'c.is_primary', createdAt: 'c.created_at',
   },
   defaultSort: 'createdAt',
-  searchColumns: ['first_name', 'last_name', 'email', 'title'],
+  searchColumns: ['first_name', 'last_name', 'email', 'title', 'address', 'city'],
   requiredFields: { contractorId: 'Contractor is required', firstName: 'First name is required', lastName: 'Last name is required' },
   updateFields: contactUpdateFields,
-  insertColumns: ['id', 'contractor_id', 'first_name', 'last_name', 'title', 'email', 'phone', 'is_primary', 'aviation_contract_id', 'source'],
+  insertColumns: ['id', 'contractor_id', 'first_name', 'last_name', 'title', 'email', 'phone', 'uei', 'duns', 'address', 'city', 'state', 'zip_code', 'contact1', 'email1', 'contact2', 'email2', 'contact3', 'email3', 'website', 'is_primary', 'aviation_contract_id', 'source'],
   insertMapper: contactInsertMapper,
   import: {
     requiredHeaders: { first: 'CSV must have "firstName" and "lastName" columns', last: 'CSV must have "firstName" and "lastName" columns' },
     requiredFields: ['firstName', 'lastName'],
     headerKeywords: {
       firstName: ['first'], lastName: ['last'], email: ['email'], phone: ['phone'],
-      title: ['title'], isPrimary: ['primary'],
+      title: ['title'], isPrimary: ['primary'], uei: ['uei'], duns: ['duns'],
+      address: ['address'], city: ['city'], state: ['state'], zipCode: ['zip'],
+      website: ['website'],
     },
     defaults: {},
     contractorMatch: { csvField: 'company', entityField: 'contractorId', fallbackToFirst: true },
@@ -426,5 +457,127 @@ export const samDataConfig: CrudConfig = {
       awardingAgencyName: ['agency', 'awarding'],
     },
     defaults: {},
+  },
+}
+
+// ─── RFQs ───
+const rfqInsertMapper = (body: Record<string, unknown>, _id: string, _now: string): (string | number | null)[] => [
+  (body._generatedNumber as string) || '',
+  ((body.title as string)?.trim() ?? null),
+  ((body.partNumber as string)?.trim() ?? null),
+  (body.partDescription as string) || null,
+  (body.quantity as number) || 1,
+  (body.status as string) || 'Draft',
+  (body.contractorId as string) || null,
+]
+
+const rfqUpdateFields: FieldMapping[] = [
+  { db: 'title', trim: true },
+  { db: 'part_number', body: 'partNumber', trim: true },
+  { db: 'part_description', body: 'partDescription' },
+  { db: 'quantity' },
+  { db: 'status', trim: true },
+  { db: 'contractor_id', body: 'contractorId' },
+]
+
+async function generateRfqNumber() {
+  const year = new Date().getFullYear()
+  const seqResult = await client.execute({
+    sql: `SELECT COUNT(*) as cnt FROM rfqs WHERE rfq_number LIKE ?`,
+    args: [`RFQ-${year}-%`],
+  })
+  const seq = Number(seqResult.rows[0]?.cnt || 0) + 1
+  return `RFQ-${year}-${String(seq).padStart(4, '0')}`
+}
+
+export const rfqsConfig: CrudConfig = {
+  table: 'rfqs', alias: 'r', entityName: 'RFQ', responseKey: 'rfqs',
+  columns: {
+    id: 'id', rfqNumber: 'rfq_number', title: 'title',
+    partNumber: 'part_number', partDescription: 'part_description',
+    quantity: 'quantity', status: 'status', aogFlag: 'aog_flag',
+    contractorId: 'contractor_id',
+    createdAt: 'created_at', updatedAt: 'updated_at',
+  },
+  joins: [{ table: 'contractors', alias: 'ct', on: 'r.contractor_id = ct.id', camelKey: 'contractor', nullValue: null }],
+  sortColumns: {
+    rfqNumber: 'r.rfq_number', title: 'r.title', partNumber: 'r.part_number',
+    status: 'r.status', createdAt: 'r.created_at',
+  },
+  defaultSort: 'createdAt',
+  searchColumns: ['rfq_number', 'title', 'part_number', 'part_description'],
+  filters: ['status'],
+  requiredFields: { title: 'Title is required', partNumber: 'Part number is required' },
+  updateFields: rfqUpdateFields,
+  insertColumns: ['id', 'rfq_number', 'title', 'part_number', 'part_description', 'quantity', 'status', 'contractor_id'],
+  insertMapper: async (body, id, now) => {
+    const rfqNumber = await generateRfqNumber()
+    body._generatedNumber = rfqNumber
+    return rfqInsertMapper(body, id, now)
+  },
+}
+
+// ─── Orders ───
+const orderInsertMapper = (body: Record<string, unknown>, _id: string, _now: string): (string | number | null)[] => [
+  (body._generatedNumber as string) || '',
+  (body.rfqId as string) || null,
+  (body.quoteId as string) || null,
+  (body.contractorId as string) || null,
+  (body.status as string) || 'Pending',
+  (body.totalAmount as number) || 0,
+  (body.taxAmount as number) || 0,
+  (body.shippingAmount as number) || 0,
+  (body.currency as string) || 'USD',
+  (body.paymentStatus as string) || 'Unpaid',
+  (body.notes as string) || null,
+]
+
+const orderUpdateFields: FieldMapping[] = [
+  { db: 'rfq_id', body: 'rfqId' },
+  { db: 'quote_id', body: 'quoteId' },
+  { db: 'contractor_id', body: 'contractorId' },
+  { db: 'status' },
+  { db: 'total_amount', body: 'totalAmount' },
+  { db: 'tax_amount', body: 'taxAmount' },
+  { db: 'shipping_amount', body: 'shippingAmount' },
+  { db: 'currency' },
+  { db: 'payment_status', body: 'paymentStatus' },
+  { db: 'notes' },
+]
+
+async function generateOrderNumber() {
+  const year = new Date().getFullYear()
+  const seqResult = await client.execute({
+    sql: `SELECT COUNT(*) as cnt FROM orders WHERE order_number LIKE ?`,
+    args: [`ORD-${year}-%`],
+  })
+  const seq = Number(seqResult.rows[0]?.cnt || 0) + 1
+  return `ORD-${year}-${String(seq).padStart(4, '0')}`
+}
+
+export const ordersConfig: CrudConfig = {
+  table: 'orders', alias: 'o', entityName: 'Order', responseKey: 'orders',
+  columns: {
+    id: 'id', orderNumber: 'order_number', rfqId: 'rfq_id', quoteId: 'quote_id',
+    contractorId: 'contractor_id', status: 'status', totalAmount: 'total_amount',
+    taxAmount: 'tax_amount', shippingAmount: 'shipping_amount', currency: 'currency',
+    paymentStatus: 'payment_status', notes: 'notes',
+    createdAt: 'created_at', updatedAt: 'updated_at',
+  },
+  joins: [{ table: 'contractors', alias: 'ct', on: 'o.contractor_id = ct.id', camelKey: 'contractor', nullValue: null }],
+  sortColumns: {
+    orderNumber: 'o.order_number', status: 'o.status', totalAmount: 'o.total_amount',
+    paymentStatus: 'o.payment_status', createdAt: 'o.created_at',
+  },
+  defaultSort: 'createdAt',
+  searchColumns: ['order_number', 'notes'],
+  filters: ['status', 'paymentStatus'],
+  requiredFields: { totalAmount: 'Total amount is required' },
+  updateFields: orderUpdateFields,
+  insertColumns: ['id', 'order_number', 'rfq_id', 'quote_id', 'contractor_id', 'status', 'total_amount', 'tax_amount', 'shipping_amount', 'currency', 'payment_status', 'notes'],
+  insertMapper: async (body, id, now) => {
+    const orderNumber = await generateOrderNumber()
+    body._generatedNumber = orderNumber
+    return orderInsertMapper(body, id, now)
   },
 }

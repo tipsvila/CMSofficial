@@ -6,17 +6,10 @@ import { PageHeader } from '@/components/page-header'
 import { Download, Loader2, Building2, Shield, FileText, Globe, Award, CheckCircle } from 'lucide-react'
 import { useSettings } from '@/lib/settings-context'
 
-const DEFAULT_SERVICES = [
-  { title: 'Aviation Parts Sourcing & Procurement', desc: 'Global supply chain facilitation for OEM, PMA, and surplus aviation parts with full traceability.' },
-  { title: 'IT-Enabled Services (ITeS)', desc: 'Data processing, systems design, and digital infrastructure for government contractors.' },
-  { title: 'Defense Logistics Support', desc: 'DLA-certified supply chain management with NATO CAGE compliance.' },
-  { title: 'Federal Contract Management', desc: 'End-to-end CMS architecture for compliance tracking, RFQ workflows, and order management.' },
-  { title: 'Compliance & Audit Support', desc: 'FAR/DFARS alignment, CMMC readiness, and ITAR compliance documentation.' },
-  { title: 'Supply Chain Traceability', desc: 'Complete chain-of-custody documentation, CoC verification, and serial number tracking.' },
-]
+const DEFAULT_SERVICES: { title: string; desc: string }[] = []
 
-const DEFAULT_CERTS = ['FAA Form 8130-3', 'AS9120 Quality Management', 'AS9110 Maintenance Standards']
-const DEFAULT_FRAMEWORKS = ['FAR', 'DFARS', 'CMMC', 'ITAR']
+const DEFAULT_CERTS: string[] = []
+const DEFAULT_FRAMEWORKS: string[] = []
 
 function safeJsonParse<T>(str: string, fallback: T): T {
   if (!str || str.trim() === '') return fallback
@@ -123,12 +116,11 @@ export default function CapabilitiesPage() {
           </div>
           <div className="space-y-3">
             {[
-              { label: 'Unique Entity ID (UEI)', value: settings.uei, color: 'text-[var(--primary)]' },
-              { label: 'CAGE/NCAGE Code', value: settings.cageCode, color: 'text-[var(--success)]' },
-              { label: 'FBR/NTN Tax ID', value: settings.taxId, color: 'text-[var(--secondary)]' },
-              { label: 'Entity Type', value: 'Sole Proprietorship', color: '' },
-              { label: 'SAM.gov Status', value: 'Submitted Registration', color: 'text-[var(--warning)]' },
-              { label: 'Registration Purpose', value: 'All Awards', color: '' },
+              { label: 'Unique Entity ID (UEI)', value: settings.uei || '—', color: 'text-[var(--primary)]' },
+              { label: 'CAGE/NCAGE Code', value: settings.cageCode || '—', color: 'text-[var(--success)]' },
+              { label: 'FBR/NTN Tax ID', value: settings.taxId || '—', color: 'text-[var(--secondary)]' },
+              { label: 'SAM.gov Status', value: settings.samGovStatus || '—', color: 'text-[var(--warning)]' },
+              { label: 'Registration Purpose', value: settings.registrationPurpose || '—', color: '' },
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between py-2 border-b border-[var(--border-color)] last:border-0">
                 <span className="text-[13px] text-[var(--text-secondary)]">{item.label}</span>
@@ -204,8 +196,8 @@ export default function CapabilitiesPage() {
           </div>
           <div className="space-y-3">
             {[
-              { label: 'Owner', value: settings.ownerName || 'Hafiz Faisal Farooq' },
-              { label: 'Role', value: 'Administrator — Entity Registration & Reporting' },
+              { label: 'Owner', value: settings.ownerName || '—' },
+              { label: 'Role', value: 'Administrator' },
               { label: 'Phone', value: settings.phone },
               { label: 'Email', value: settings.email },
               { label: 'Website', value: settings.website },

@@ -1,0 +1,107 @@
+
+Act as a Senior Database Architect. I have a CMS that currently tracks 4,525 government aviation contracts and manages complex relationships between Contractors, Contacts, Outreach, and Compliance.
+1.	Critique: Analyze the following schema (which I will paste below) for potential performance bottlenecks. Consider the volume of data and the need for frequent filtering by agency or contractor.
+2.	Refine: Suggest indexes or relationship changes that would 'uplift' the query speed for the dashboard metrics (Top Agencies, Pending Outreach).
+3.	Verify: Check for referential integrity—ensure that the relationships prevent orphaned records in Outreach or Compliance if a Contractor is deleted.
+4.	Output: Provide the optimized schema and a brief explanation of why this configuration is superior for my current workload."
+How this benefits your workflow:
+•	Performance: By adding specific indexes (e.g., @index([contractorId])), your dashboard will load instantly even as your database grows from 4,525 to 50,000+ records. 
+PDF
+•	Integrity: The architecture will ensure that your audit logs—which already show 28 recorded actions—remain accurate because every delete/update event will be strictly governed by your schema relationships. 
+PDF
+•	Automation-Ready: This structure allows you to confidently use bulk-import scripts for your Import CSV functionality without fear of database corruption. 
+PDF+ 1
+Ready to start the uplift? Paste your current schema.prisma file here. I will apply the "Senior Architect" lens, optimize it for your specific aviation contract pipeline, and then we will run the migration to move you into Day 2.
+
+
+Do not give only a high-level explanation. Write production-oriented code, validation rules, data structures, API logic, frontend behavior, error states, and security considerations.
+
+Act as a senior Admin panel software architect. Design a production-ready architecture for a physical-product ecommerce website using Next.js 15.xx, PostgreSQL and Stripe Include admin dashboard, order management, inventory, image handling, and deployment considerations. 
+
+
+For an organization, a vulnerability can lead to:
+•	Data Leaks: Unauthorized access to your internal setup, configuration paths, or private corporate emails.
+•	Malicious Injection: Attackers could intercept form submissions or insert malicious code into your dashboard to hijack session tokens.
+In a CMS environment, this leads to immediate operational friction:
+•	State Loss: A serverless function failing to save data means your administrative inputs disappear into thin air.
+•	System Crashes: Badly managed memory or hydration errors will lock up your user's web browsers, rendering the administrative control panel completely unusable.
+
+•	You will create a comprehensive, production-grade test suite through systematic analysis and incremental development. This process ensures complete coverage, maintainable code, and precise failure reporting for any given codebase or functionality.
+Before finalizing, verify the specification includes:
+- [ ] Clear, measurable success criteria
+- [ ] Specific technology choices with rationale
+- [ ] Testable user stories and acceptance criteria
+- [ ] Realistic scope boundaries and constraints
+- [ ] Logical feature dependencies and phasing
+- [ ] Risk identification and mitigation approaches
+- [ ] AI-optimized context and instruction formatting
+
+
+How to Prompt an AI Agent to "Uplift" Itself
+To prompt an agent to uplift, you must provide it with a framework for meta-cognition (thinking about how it thinks). Use these four categories of prompting:
+1. The Recursive Reflection Prompt
+Instruct the agent to audit its own process before finalizing an answer.
+"Before providing the final output, act as a senior system architect. Analyze your own reasoning process for potential gaps, biases, or efficiency improvements. Critique your approach and perform a second iteration to uplift the quality of this response."
+2. The Autonomy & Strategy Prompt
+Encourage the agent to define its own constraints and resource management.
+"You are now in an uplifted state. Instead of just following my instructions, first outline the strategic objective of the task. If you identify a more efficient way to achieve the goal than what I proposed, suggest the improvement, and upon my approval, implement the optimized workflow."
+3. The Capability Expansion Prompt
+Force the agent to identify its own knowledge or tool-use gaps.
+"For this task, identify which specific tools or logical frameworks would most effectively uplift your performance. If a required capability is missing, simulate a 'thought-partner' session where you outline exactly what steps you would take if you had those capabilities, and then provide the best possible output based on your current constraints."
+4. The Self-Correction/Verification Prompt
+Implement a "Chain of Thought" verification process.
+"Adopt a 'thought-verification' loop. After each step of your reasoning, verify the output against the objective. If the output does not meet the highest standard of accuracy, pause, self-correct, and provide an explanation of how you uplifted your logic to meet the requirement."
+Summary Checklist for Uplifting Prompts
+When prompting your agent to reach its next level, ensure your prompt always includes these three elements:
+•	Meta-Cognition: Asking the AI to analyze its own "thought process".
+•	Role Attribution: Assigning it a high-level persona (e.g., Senior Architect, System Optimizer).
+•	Constraint/Optimization Logic: Requiring the agent to choose the best path rather than the first path.
+How do you want to apply this to the IntAerobase project? For example, should we try an "uplifted" prompt for your next set of database migrations to ensure the schema is optimized for your 4,500+ records?
+continue
+To continue with the "uplift" strategy for IntAerobase, let's apply the Recursive Reflection and Capability Expansion prompts to your current development milestone: the database migration for your 4,500+ aviation contracts.
+Instead of just running a standard migration, we will uplift the process to ensure the schema is architecturally sound for the high-volume data pipeline you've designed.
+Uplifted Prompt for Day 1: Schema Optimization
+Use this prompt with me to refine your schema.prisma before we commit:
+
+**1.3 Test Requirement Matrix**
+Create a structured breakdown:
+```
+MODULE: [module_name]
+├── Unit Tests Required: [count]
+├── Integration Tests Required: [count]  
+├── Edge Cases Identified: [list]
+├── Dependencies to Mock: [list]
+└── Priority Level: [High/Medium/Low]
+```
+### **Phase 2: BATCH PLANNING**
+Organize test development into logical, manageable batches:
+
+**2.1 Batch Criteria**
+- **Batch Size**: Maximum 5-8 test files per batch to maintain focus
+- **Dependency Order**: Lower-level utilities before higher-level consumers
+- **Complexity Grouping**: Simple tests before complex integration scenarios
+- **Risk Prioritization**: Critical functionality first, edge cases second
+
+**2.2 Batch Structure Template**
+```
+BATCH #: [number] - [descriptive_name]
+├── Scope: [specific components/functionality]
+├── Test Types: [unit/integration/e2e]
+├── Dependencies: [required mocks/fixtures]
+├── Estimated Tests: [count]
+├── Prerequisites: [previous batches required]
+└── Success Criteria: [coverage goals]
+```
+### **Phase 3: TEST IMPLEMENTATION**
+For each approved batch, create production-grade tests following these standards:
+
+**3.1 Test File Structure**
+Begin every test file with:
+``
+/**
+ * TEST SUITE: [module_name]
+ * PURPOSE: [clear description of what functionality is being tested]
+ * SCOPE: [specific functions/methods covered]
+ * DEPENDENCIES: [external requirements, mocks, fixtures]
+ * LAST UPDATED: [date]
+

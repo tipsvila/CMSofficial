@@ -35,6 +35,7 @@ export default function OrdersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [importing, setImporting] = useState(false)
@@ -77,6 +78,16 @@ export default function OrdersPage() {
       toast('success', `Imported ${result.imported} orders`); fetchData()
     } catch { toast('error', 'Import failed') }
     finally { setImporting(false); if (fileInputRef.current) fileInputRef.current.value = '' }
+  }
+
+  const handleDeleteSingle = async () => {
+    if (!deleteTarget) return
+    try {
+      const res = await fetch('/api/orders/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [deleteTarget] }) })
+      const result = await res.json()
+      if (!res.ok) { toast('error', result.error || 'Delete failed'); return }
+      toast('success', 'Order deleted'); setDeleteTarget(null); fetchData()
+    } catch { toast('error', 'Delete failed') }
   }
 
   const handleBulkDelete = async () => {
@@ -147,7 +158,7 @@ export default function OrdersPage() {
             { key: 'status', label: 'Status', headerRender: () => <button onClick={e => { e.stopPropagation(); handleSort('status') }} className="flex items-center gap-1 hover:text-[var(--primary)]">Status <SortIcon sortBy={sortBy} sortOrder={sortOrder} field="status" /></button>, render: row => <Badge variant={STATUS_BADGE[row.status as string] || 'default'}>{String(row.status || '')}</Badge> },
             { key: 'totalAmount', label: 'Amount', headerRender: () => <button onClick={e => { e.stopPropagation(); handleSort('totalAmount') }} className="flex items-center gap-1 hover:text-[var(--primary)]">Amount <SortIcon sortBy={sortBy} sortOrder={sortOrder} field="totalAmount" /></button>, render: row => <span className="text-[12px] font-medium">${Number(row.totalAmount || 0).toLocaleString()}</span> },
             { key: 'paymentStatus', label: 'Payment', render: row => <Badge variant={row.paymentStatus === 'Paid' ? 'success' : row.paymentStatus === 'Unpaid' ? 'warning' : 'default'}>{String(row.paymentStatus || '')}</Badge> },
-            { key: 'actions', label: '', render: row => <Link href={`/orders/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()}><Eye size={16} className="text-[var(--text-muted)]" /></Link> },
+            { key: 'actions', label: '', render: row => <div className="flex items-center gap-1"><Link href={`/orders/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()}><Eye size={16} className="text-[var(--text-muted)]" /></Link><button className="p-1 hover:bg-red-500/10 rounded" onClick={e => { e.stopPropagation(); setDeleteTarget(row.id as string) }}><Trash2 size={14} className="text-[var(--danger)]" /></button></div> },
           ]} data={data.orders as unknown as Record<string, unknown>[]} onRowClick={row => router.push(`/orders/${row.id}`)} />
 
           <div className="flex items-center justify-between mt-4 text-[11px] text-[var(--text-muted)]">
@@ -163,6 +174,8 @@ export default function OrdersPage() {
         </>
       )}
 
+      <ConfirmDialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteSingle}
+        title="Delete Order" message="Are you sure you want to delete this order? This action cannot be undone." />
       <ConfirmDialog open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} onConfirm={handleBulkDelete}
         title="Delete Selected Orders" message={`Are you sure you want to delete ${selectedIds.size} selected order(s)? This action cannot be undone.`} />
       <ConfirmDialog open={showDeleteAllConfirm} onClose={() => setShowDeleteAllConfirm(false)} onConfirm={handleDeleteAll}

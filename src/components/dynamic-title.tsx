@@ -8,7 +8,7 @@ export function DynamicTitle() {
 
   useEffect(() => {
     if (settings.companyName) {
-      document.title = `${settings.companyName} — Aviation CMS`
+      document.title = `${settings.companyName}`
     }
   }, [settings.companyName])
 

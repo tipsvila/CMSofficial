@@ -22,7 +22,7 @@ interface QueryResult {
 }
 
 // Whitelist of SQL statement prefixes allowed in the POST query runner
-const ALLOWED_PREFIXES = /^\s*(SELECT|PRAGMA|EXPLAIN)\b/i
+const ALLOWED_PREFIXES = /^\s*(SELECT|PRAGMA|EXPLAIN|UPDATE)\b/i
 
 // Block multi-statement queries (semicolons anywhere except trailing)
 // Also block SQL comments that could hide statements
@@ -83,11 +83,15 @@ export async function GET(request: Request) {
 
       for (const tableName of validTables) {
         const colsResult = await client.execute(`PRAGMA table_info('${tableName}')`)
-        const countResult = await client.execute(`SELECT COUNT(*) as cnt FROM "${tableName}"`)
+        const cols = colsResult.rows as unknown as ColumnInfo[]
+        const hasActive = cols.some(c => c.name === 'is_active')
+        const countResult = hasActive
+          ? await client.execute(`SELECT COUNT(*) as cnt FROM "${tableName}" WHERE is_active = 1`)
+          : await client.execute(`SELECT COUNT(*) as cnt FROM "${tableName}"`)
 
         tables.push({
           name: tableName,
-          columns: colsResult.rows as unknown as ColumnInfo[],
+          columns: cols,
           rowCount: Number(countResult.rows[0]?.cnt || 0),
         })
       }

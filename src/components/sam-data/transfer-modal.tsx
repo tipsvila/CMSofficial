@@ -5,17 +5,7 @@ import { Modal } from '@/components/ui'
 import { ArrowRightLeft, Check, Loader2, AlertCircle, Mail, FileText, Users, ClipboardCheck, Phone, HelpCircle, Send } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { api } from '@/lib/api-client'
-
-interface SAMRecord {
-  id: string
-  awardIdPiid: string
-  recipientName: string
-  totalObligatedAmount?: number | null
-  periodOfPerformanceCurrentEndDate?: string | null
-  naicsDescription?: string | null
-  productOrServiceCodeDescription?: string | null
-  awardingAgencyName?: string | null
-}
+import type { SAMRecord } from '@/lib/sam-email'
 
 type EntityType = 'contractor' | 'contract' | 'compliance' | 'contact' | 'outreach' | 'inquiry' | 'email'
 

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { DataTable, ConfirmDialog } from '@/components/ui'
-import { Plus, Search, Eye, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Plus, Search, Eye, Edit, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { SortIcon } from '@/components/sort-icon'
 import Link from 'next/link'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -150,7 +150,19 @@ export function EntityListPage({ config }: { config: EntityListConfig }) {
       ) : undefined,
       render: col.render || ((row: Record<string, unknown>) => <span className="text-[12px]">{String(row[col.key] ?? '-')}</span>),
     })),
-    { key: 'actions', label: '', render: (row: Record<string, unknown>) => <Link href={`${endpoint.replace('/api', '')}/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()}><Eye size={16} className="text-[var(--text-muted)]" /></Link> },
+    { key: 'actions', label: '', render: (row: Record<string, unknown>) => (
+      <div className="flex items-center gap-1">
+        <Link href={`${endpoint.replace('/api', '')}/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()} title="View">
+          <Eye size={14} className="text-[var(--text-muted)]" />
+        </Link>
+        <Link href={`${endpoint.replace('/api', '')}/${row.id}`} className="p-1 hover:bg-[var(--primary-light)] rounded" onClick={e => e.stopPropagation()} title="Edit">
+          <Edit size={14} className="text-[var(--primary)]" />
+        </Link>
+        <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete this ${entityName.toLowerCase().replace(/s$/, '')}?`)) { fetch(`${endpoint}/bulk-delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [row.id] }) }).then(r => r.json()).then(() => { toast('success', 'Deleted'); fetchData() }).catch(() => toast('error', 'Delete failed')) } }} className="p-1 hover:bg-red-50 rounded" title="Delete">
+          <Trash2 size={14} className="text-red-500" />
+        </button>
+      </div>
+    ) },
   ]
 
   return (

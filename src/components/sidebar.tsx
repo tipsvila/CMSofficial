@@ -77,7 +77,7 @@ export function Sidebar() {
         <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col items-center bg-[var(--sidebar-bg)] border-r border-[var(--border-color)]" style={{ width: '4.5rem' }}>
           <Link href="/" className="flex items-center justify-center w-full h-14 shrink-0" title={settings.companyName}>
           <div className="rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ width: settings.logoSize || 36, height: settings.logoSize || 36 }}>
-            {settings.logoUrl ? <Image src={settings.logoUrl} alt={settings.companyName} width={settings.logoSize || 36} height={settings.logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>}
+            {settings.logoUrl ? <Image src={settings.logoUrl} alt={settings.companyName} width={settings.logoSize || 36} height={settings.logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">{(settings.companyName || 'A').charAt(0).toUpperCase()}</div>}
           </div>
           </Link>
           <nav className="flex-1 overflow-y-auto w-full px-2 py-2 space-y-1">
@@ -113,11 +113,11 @@ function SidebarContent({ companyName, tagline, logoUrl, logoSize, isActive, onC
       <div className="flex items-center justify-between px-5 py-4 shrink-0 border-b border-[var(--border-color)]">
         <Link href="/" className="flex items-center gap-3">
           <div className="rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ width: logoSize || 36, height: logoSize || 36 }}>
-            {logoUrl ? <Image src={logoUrl} alt={companyName} width={logoSize || 36} height={logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">IA</div>}
+            {logoUrl ? <Image src={logoUrl} alt={companyName} width={logoSize || 36} height={logoSize || 36} className="w-full h-full" unoptimized /> : <div className="w-full h-full rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">{(companyName || 'A').charAt(0).toUpperCase()}</div>}
           </div>
           <div>
-            <span className="font-bold text-[15px] text-[var(--text-primary)]">{companyName}</span>
-            <p className="text-[10px] text-[var(--text-muted)] leading-tight truncate max-w-[140px]">{tagline || 'Aviation CMS'}</p>
+            {companyName && <span className="font-bold text-[15px] text-[var(--text-primary)]">{companyName}</span>}
+            {tagline && <p className="text-[10px] text-[var(--text-muted)] leading-tight truncate max-w-[140px]">{tagline}</p>}
           </div>
         </Link>
         {onCollapse && (

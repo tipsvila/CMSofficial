@@ -161,13 +161,16 @@ const contactsConfig = {
   searchPlaceholder: 'Search contacts...',
   addHref: '/contacts/new',
   addLabel: 'Add Contact',
-  csvHeaders: ['First Name', 'Last Name', 'Company', 'Title', 'Email', 'Phone', 'Primary', 'Source'],
+  csvHeaders: ['First Name', 'Last Name', 'Company', 'Title', 'Email', 'Phone', 'UEI', 'DUNS', 'Address', 'City', 'State', 'Zip', 'Contact1', 'Email1', 'Contact2', 'Email2', 'Contact3', 'Email3', 'Website', 'Primary', 'Source'],
   csvRowMapper: (row: Record<string, unknown>) => [
     row.firstName || '', row.lastName || '',
     (row.contractor as Record<string, unknown>)?.name || '',
     row.title || '', row.email || '', row.phone || '',
-    row.isPrimary ? 'Yes' : 'No',
-    row.source || '',
+    row.uei || '', row.duns || '',
+    row.address || '', row.city || '', row.state || '', row.zipCode || '',
+    row.contact1 || '', row.email1 || '', row.contact2 || '', row.email2 || '',
+    row.contact3 || '', row.email3 || '', row.website || '',
+    row.isPrimary ? 'Yes' : 'No', row.source || '',
   ],
   columns: [
     { key: 'name', label: 'Name', sortable: true, sortField: 'firstName', render: (row: Record<string, unknown>) => (
@@ -184,6 +187,18 @@ const contactsConfig = {
     )},
     { key: 'phone', label: 'Phone', render: (row: Record<string, unknown>) => (
       row.phone ? <span className="flex items-center gap-1"><Phone size={12} /> {row.phone as string}</span> : '-'
+    )},
+    { key: 'uei', label: 'UEI', render: (row: Record<string, unknown>) => (
+      <span className="text-[11px] font-mono">{String(row.uei || '-')}</span>
+    )},
+    { key: 'duns', label: 'DUNS', render: (row: Record<string, unknown>) => (
+      <span className="text-[11px] font-mono">{String(row.duns || '-')}</span>
+    )},
+    { key: 'address', label: 'Address', render: (row: Record<string, unknown>) => (
+      <span className="text-[11px] truncate max-w-[150px] block">{String(row.address || '-')}</span>
+    )},
+    { key: 'website', label: 'Website', render: (row: Record<string, unknown>) => (
+      row.website ? <a href={String(row.website)} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--primary)] hover:underline">{String(row.website)}</a> : '-'
     )},
     { key: 'isPrimary', label: 'Primary', sortable: true, render: (row: Record<string, unknown>) => (
       <Badge variant={row.isPrimary ? 'success' : 'default'}>{row.isPrimary ? 'Primary' : 'Secondary'}</Badge>

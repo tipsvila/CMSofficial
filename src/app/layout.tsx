@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "INTAEROBASE — Aviation CMS",
-  description: "Aviation Federal Contract Management",
+  title: "Aviation CMS",
+  description: "Federal Contract Management System",
 };
 
 export const viewport: Viewport = {

@@ -11,9 +11,14 @@ class ApiError extends Error {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const method = options?.method?.toUpperCase() || 'GET'
+  const hasBody = method === 'POST' || method === 'PUT' || method === 'PATCH'
   const res = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...options?.headers,
+    },
   })
 
   let data: Record<string, unknown> = {}

@@ -36,13 +36,48 @@ export default function DatabasePage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
-  const [view, setView] = useState<'data' | 'schema' | 'query'>('data')
+  const [view, setView] = useState<'data' | 'schema' | 'query' | 'crud'>('data')
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM contractors LIMIT 10')
   const [queryResult, setQueryResult] = useState<{ columns: string[]; rows: Record<string, unknown>[]; rowCount: number; duration: string } | null>(null)
   const [queryError, setQueryError] = useState('')
   const [queryLoading, setQueryLoading] = useState(false)
   const [queryHistory, setQueryHistory] = useState<{ query: string; time: string; rowCount: number; duration: string }[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // CRUD state
+  const [crudAction, setCrudAction] = useState<'create' | 'edit' | 'delete' | null>(null)
+  const [crudFormData, setCrudFormData] = useState<Record<string, string>>({})
+  const [crudEditRow, setCrudEditRow] = useState<Record<string, unknown> | null>(null)
+  const [crudDeleteRow, setCrudDeleteRow] = useState<Record<string, unknown> | null>(null)
+
+  const handleCrudCreate = async () => {
+    try {
+      const res = await fetch(`/api/${selectedTable}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(crudFormData) })
+      const result = await res.json()
+      if (!res.ok) { alert(result.error || 'Create failed'); return }
+      setCrudAction(null); setCrudFormData({}); fetchData(selectedTable, 1, search)
+    } catch { alert('Create failed') }
+  }
+
+  const handleCrudUpdate = async () => {
+    if (!crudEditRow) return
+    try {
+      const res = await fetch(`/api/${selectedTable}/${crudEditRow.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(crudFormData) })
+      const result = await res.json()
+      if (!res.ok) { alert(result.error || 'Update failed'); return }
+      setCrudAction(null); setCrudFormData({}); setCrudEditRow(null); fetchData(selectedTable, page, search)
+    } catch { alert('Update failed') }
+  }
+
+  const handleCrudDelete = async () => {
+    if (!crudDeleteRow) return
+    try {
+      const res = await fetch(`/api/${selectedTable}/${crudDeleteRow.id}`, { method: 'DELETE' })
+      const result = await res.json()
+      if (!res.ok) { alert(result.error || 'Delete failed'); return }
+      setCrudAction(null); setCrudDeleteRow(null); fetchData(selectedTable, page, search)
+    } catch { alert('Delete failed') }
+  }
 
   const fetchTables = useCallback(async () => {
     setLoading(true)
@@ -223,6 +258,10 @@ export default function DatabasePage() {
                     <button onClick={() => setView('query')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${view === 'query' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--content-bg)]'}`}>
                       <Play size={12} className="inline mr-1" />Query
+                    </button>
+                    <button onClick={() => setView('crud')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${view === 'crud' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--content-bg)]'}`}>
+                      <Edit size={12} className="inline mr-1" />CRUD
                     </button>
                   </div>
                 </div>
@@ -528,6 +567,136 @@ export default function DatabasePage() {
                               ))}
                             </tbody>
                           </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {view === 'crud' && (
+                      <div className="p-4 space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <button onClick={() => setCrudAction('create')}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium hover:opacity-90 transition-opacity">
+                            <Plus size={14} /> Add New Record
+                          </button>
+                        </div>
+
+                        {crudAction === 'create' && (
+                          <div className="matdash-card p-4">
+                            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3">Create New Record</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {schema?.columns.filter(c => !c.pk && c.name !== 'is_active' && c.name !== 'created_at' && c.name !== 'updated_at').map(col => (
+                                <div key={col.name}>
+                                  <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">{col.name} {col.notnull ? '*' : ''}</label>
+                                  <input type="text" value={crudFormData[col.name] || ''}
+                                    onChange={e => setCrudFormData(prev => ({ ...prev, [col.name]: e.target.value }))}
+                                    placeholder={col.type}
+                                    className="w-full px-2 py-1.5 text-xs border border-[var(--border-color)] rounded bg-[var(--content-bg)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30" />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 mt-4">
+                              <button onClick={handleCrudCreate}
+                                className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium hover:opacity-90">
+                                Save Record
+                              </button>
+                              <button onClick={() => { setCrudAction(null); setCrudFormData({}); }}
+                                className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--content-bg)]">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {crudAction === 'edit' && crudEditRow && (
+                          <div className="matdash-card p-4">
+                            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3">Edit Record</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {schema?.columns.filter(c => !c.pk && c.name !== 'created_at' && c.name !== 'updated_at').map(col => (
+                                <div key={col.name}>
+                                  <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">{col.name}</label>
+                                  <input type="text" value={crudFormData[col.name] || ''}
+                                    onChange={e => setCrudFormData(prev => ({ ...prev, [col.name]: e.target.value }))}
+                                    placeholder={col.type}
+                                    className="w-full px-2 py-1.5 text-xs border border-[var(--border-color)] rounded bg-[var(--content-bg)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]/30" />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 mt-4">
+                              <button onClick={handleCrudUpdate}
+                                className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium hover:opacity-90">
+                                Update Record
+                              </button>
+                              <button onClick={() => { setCrudAction(null); setCrudFormData({}); setCrudEditRow(null); }}
+                                className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--content-bg)]">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {crudAction === 'delete' && crudDeleteRow && (
+                          <div className="matdash-card p-4 border border-red-500/20">
+                            <h3 className="text-sm font-bold text-red-500 mb-2">Delete Record</h3>
+                            <p className="text-xs text-[var(--text-secondary)] mb-3">
+                              Are you sure you want to delete this record? This action cannot be undone.
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button onClick={handleCrudDelete}
+                                className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-medium hover:opacity-90">
+                                Delete
+                              </button>
+                              <button onClick={() => { setCrudAction(null); setCrudDeleteRow(null); }}
+                                className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--content-bg)]">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Row Actions */}
+                        <div className="overflow-auto max-h-[calc(100vh-400px)]">
+                          {data && data.rows.length > 0 ? (
+                            <table className="w-full text-sm">
+                              <thead className="sticky top-0 bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+                                <tr>
+                                  {data.columns.slice(0, 5).map(col => (
+                                    <th key={col} className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                                      {col}
+                                    </th>
+                                  ))}
+                                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[var(--border-color)]">
+                                {data.rows.map((row, i) => (
+                                  <tr key={i} className="hover:bg-[var(--content-bg)] transition-colors">
+                                    {data.columns.slice(0, 5).map(col => (
+                                      <td key={col} className="px-3 py-2 text-[var(--text-primary)] whitespace-nowrap max-w-[200px] truncate text-xs">
+                                        <CellValue value={row[col]} />
+                                      </td>
+                                    ))}
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center gap-1">
+                                        <button onClick={() => { setCrudAction('edit'); setCrudEditRow(row); setCrudFormData(row); }}
+                                          className="px-2 py-1 rounded text-[10px] bg-[var(--primary-light)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-colors">
+                                          Edit
+                                        </button>
+                                        <button onClick={() => { setCrudAction('delete'); setCrudDeleteRow(row); }}
+                                          className="px-2 py-1 rounded text-[10px] bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-40 text-[var(--text-muted)]">
+                              <Table size={24} className="mb-2 opacity-40" />
+                              <p className="text-sm">No records found</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

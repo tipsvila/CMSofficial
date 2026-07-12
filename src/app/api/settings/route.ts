@@ -11,12 +11,12 @@ export async function GET() {
     await ensureDb()
     const settings = await db.select().from(companySettings).limit(1)
     if (settings.length === 0) {
-      return NextResponse.json({ success: true, data: { companyName: 'INTAEROBASE', tagline: 'Aviation CMS' } })
+      return NextResponse.json({ success: true, data: {} })
     }
     return NextResponse.json({ success: true, data: settings[0] })
   } catch (error) {
     console.error('GET /api/settings error:', error)
-    return NextResponse.json({ success: true, data: { companyName: 'INTAEROBASE', tagline: 'Aviation CMS' } })
+    return NextResponse.json({ success: true, data: {} })
   }
 }
 

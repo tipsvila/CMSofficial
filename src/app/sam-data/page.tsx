@@ -1,10 +1,10 @@
 'use client'
 
-import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { DataTable, ConfirmDialog } from '@/components/ui'
-import { FilterPanel, type SAMFilters } from '@/components/sam-data/filter-panel'
+import { FilterPanel } from '@/components/sam-data/filter-panel'
 import { BulkActions } from '@/components/sam-data/bulk-actions'
 import { TransferModal } from '@/components/sam-data/transfer-modal'
 import { EmailModal } from '@/components/sam-data/email-modal'
@@ -12,172 +12,99 @@ import { ComplianceModal } from '@/components/sam-data/compliance-modal'
 import { Plus, Search, Eye, Upload, Trash2, CheckSquare, Square, FileSpreadsheet, Loader2, ArrowRightLeft } from 'lucide-react'
 import { SortIcon } from '@/components/sort-icon'
 import Link from 'next/link'
-import { useDebounce } from '@/hooks/use-debounce'
 import { useToast } from '@/components/toast'
 import { TableSkeleton } from '@/components/skeleton'
-import { api } from '@/lib/api-client'
+import { useSAMData } from '@/hooks/use-sam-data'
+import { useSAMExport } from '@/hooks/use-sam-export'
+import { useSAMSelection } from '@/hooks/use-sam-selection'
+import { useCSVImport } from '@/hooks/use-csv-import'
+import { ImportProgress } from '@/components/sam-data/import-progress'
 import type { SAMRecord } from '@/lib/sam-email'
 
-const CSV_HEADERS = ['Award ID/PIID', 'Recipient Name', 'Total Obligated Amount', 'End Date', 'NAICS Description', 'PSC Description', 'Awarding Agency']
-const csvRowMapper = (row: Record<string, unknown>) => [
-  row.awardIdPiid || '', row.recipientName || '',
-  row.totalObligatedAmount != null ? String(row.totalObligatedAmount) : '',
-  row.periodOfPerformanceCurrentEndDate || '', row.naicsDescription || '',
-  row.productOrServiceCodeDescription || '', row.awardingAgencyName || '',
-]
-
 const COLUMNS = [
-  { key: 'awardIdPiid', label: 'Award ID/PIID', sortable: true, render: (row: Record<string, unknown>) => <span className="font-mono text-[12px] font-bold">{String(row.awardIdPiid || '')}</span> },
+  { key: 'awardIdPiid', label: 'Award ID/PIID', sortable: true, render: (row: SAMRecord) => <span className="font-mono text-[12px] font-bold">{String(row.awardIdPiid || '')}</span> },
   { key: 'recipientName', label: 'Recipient', sortable: true },
-  { key: 'totalObligatedAmount', label: 'Amount', sortable: true, render: (row: Record<string, unknown>) => row.totalObligatedAmount != null ? <span className="text-[12px]">${Number(row.totalObligatedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> : <span className="text-[12px] text-[var(--text-muted)]">-</span> },
-  { key: 'awardingAgencyName', label: 'Agency', sortable: true, render: (row: Record<string, unknown>) => <span className="text-[12px]">{String(row.awardingAgencyName || '-')}</span> },
-  { key: 'naicsDescription', label: 'NAICS', render: (row: Record<string, unknown>) => <span className="text-[12px] text-[var(--text-muted)] max-w-[200px] truncate block">{String(row.naicsDescription || '-')}</span> },
-  { key: 'periodOfPerformanceCurrentEndDate', label: 'End Date', sortable: true, render: (row: Record<string, unknown>) => row.periodOfPerformanceCurrentEndDate ? <span className="text-[12px]">{new Date(row.periodOfPerformanceCurrentEndDate as string).toLocaleDateString()}</span> : '-' },
+  { key: 'totalObligatedAmount', label: 'Amount', sortable: true, render: (row: SAMRecord) => row.totalObligatedAmount != null ? <span className="text-[12px]">${Number(row.totalObligatedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> : <span className="text-[12px] text-[var(--text-muted)]">-</span> },
+  { key: 'awardingAgencyName', label: 'Agency', sortable: true, render: (row: SAMRecord) => <span className="text-[12px]">{String(row.awardingAgencyName || '-')}</span> },
+  { key: 'naicsDescription', label: 'NAICS', render: (row: SAMRecord) => <span className="text-[12px] text-[var(--text-muted)] max-w-[200px] truncate block">{String(row.naicsDescription || '-')}</span> },
+  { key: 'periodOfPerformanceCurrentEndDate', label: 'End Date', sortable: true, render: (row: SAMRecord) => row.periodOfPerformanceCurrentEndDate ? <span className="text-[12px]">{new Date(row.periodOfPerformanceCurrentEndDate).toLocaleDateString()}</span> : '-' },
 ]
 
 export default function SAMDataPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [data, setData] = useState<{ items: Record<string, unknown>[]; total: number }>({ items: [], total: 0 })
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [exporting, setExporting] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  const {
+    data, loading, error, page, search, sortBy, sortOrder, debouncedSearch,
+    setPage, setSearch, handleSort, handleFiltersChange, fetchData,
+  } = useSAMData()
+
+  const {
+    exporting, handleExportCSV, handleExportSelected,
+  } = useSAMExport()
+
+  const {
+    selectedIds, toggleSelect, toggleSelectAll, clearSelection,
+    selectedItems, selectedRecords,
+  } = useSAMSelection(data.items)
+
+  const { progress, importCSV, cancel: cancelImport, reset: resetImport } = useCSVImport()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
-  const [sortBy, setSortBy] = useState('createdAt')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [filters, setFilters] = useState<SAMFilters>({ agency: '', amountMin: '', amountMax: '', dateStart: '', dateEnd: '', naicsSearch: '', status: '' })
 
-  // Modal state
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [complianceModalOpen, setComplianceModalOpen] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const debouncedSearch = useDebounce(search, 300)
-
-  const buildParams = useCallback(() => {
-    const params = new URLSearchParams({ page: String(page), search: debouncedSearch, sortBy, sortOrder })
-    if (filters.agency) params.set('agency', filters.agency)
-    if (filters.amountMin) params.set('amountMin', filters.amountMin)
-    if (filters.amountMax) params.set('amountMax', filters.amountMax)
-    if (filters.dateStart) params.set('dateStart', filters.dateStart)
-    if (filters.dateEnd) params.set('dateEnd', filters.dateEnd)
-    if (filters.naicsSearch) params.set('naics', filters.naicsSearch)
-    if (filters.status) params.set('status', filters.status)
-    return params.toString()
-  }, [page, debouncedSearch, sortBy, sortOrder, filters])
-
-  const fetchData = useCallback(async () => {
-    setLoading(true); setError(null)
-    try {
-      const result = await api.get<Record<string, unknown>>(`/api/sam-data?${buildParams()}`)
-      const items = (result.records || []) as Record<string, unknown>[]
-      setData({ items, total: (result.total as number) || 0 })
-    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load SAM data') }
-    finally { setLoading(false) }
-  }, [buildParams])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const handleFiltersChange = useCallback((f: SAMFilters) => { setFilters(f); setPage(1) }, [])
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(data.total / 20)), [data.total])
 
-  const selectedItems = data.items.filter(item => selectedIds.has(item.id as string))
-  const selectedRecords = selectedItems as unknown as SAMRecord[]
+  const handleImportCSV = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    const result = await importCSV('/api/sam-data/import', file)
+    if ('done' in result && result.done) {
+      toast('success', `Imported ${result.imported.toLocaleString()} SAM records`)
+      fetchData()
+    } else if ('error' in result && result.error !== 'cancelled') {
+      toast('error', result.error)
+    }
+  }, [importCSV, fetchData, toast])
 
-  const handleExportCSV = async () => {
-    setExporting(true)
-    try {
-      const result = await api.get<Record<string, unknown>>(`/api/sam-data/export?search=${encodeURIComponent(debouncedSearch)}&sortBy=${sortBy}&sortOrder=${sortOrder}`)
-      const items = (result.records || []) as Record<string, unknown>[]
-      const rows = items.map(csvRowMapper)
-      const csv = [CSV_HEADERS, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `sam-data-${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url)
-      toast('success', `Exported ${items.length} SAM records to CSV`)
-    } catch { toast('error', 'Failed to export CSV') }
-    finally { setExporting(false) }
-  }
-
-  const handleExportSelected = async () => {
-    setExporting(true)
-    try {
-      const rows = selectedItems.map(csvRowMapper)
-      const csv = [CSV_HEADERS, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `sam-data-selected-${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url)
-      toast('success', `Exported ${selectedItems.length} selected records to CSV`)
-    } catch { toast('error', 'Failed to export selected records') }
-    finally { setExporting(false) }
-  }
-
-  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return; setImporting(true)
-    try {
-      const formData = new FormData(); formData.append('file', file)
-      const res = await fetch('/api/sam-data/import', { method: 'POST', body: formData }); const result = await res.json()
-      if (!res.ok) { toast('error', result.error || 'Import failed'); return }
-      toast('success', `Imported ${result.imported} SAM records`); fetchData()
-    } catch { toast('error', 'Import failed') }
-    finally { setImporting(false); if (fileInputRef.current) fileInputRef.current.value = '' }
-  }
-
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     try {
       const res = await fetch('/api/sam-data/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: Array.from(selectedIds) }) })
       const result = await res.json()
       if (!res.ok) { toast('error', result.error || 'Delete failed'); return }
-      toast('success', `Deleted ${result.deleted} SAM records`); setSelectedIds(new Set()); setShowDeleteConfirm(false); fetchData()
+      toast('success', `Deleted ${result.deleted} SAM records`); clearSelection(); setShowDeleteConfirm(false); fetchData()
     } catch { toast('error', 'Delete failed') }
-  }
+  }, [selectedIds, clearSelection, fetchData, toast])
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = useCallback(async () => {
     try {
       const res = await fetch('/api/sam-data/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deleteAll: true }) })
       const result = await res.json()
       if (!res.ok) { toast('error', result.error || 'Delete failed'); return }
-      toast('success', `Deleted all ${result.deleted} SAM records`); setSelectedIds(new Set()); setShowDeleteAllConfirm(false); fetchData()
+      toast('success', `Deleted all ${result.deleted} SAM records`); clearSelection(); setShowDeleteAllConfirm(false); fetchData()
     } catch { toast('error', 'Delete failed') }
-  }
+  }, [clearSelection, fetchData, toast])
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === data.items.length) setSelectedIds(new Set())
-    else setSelectedIds(new Set(data.items.map(r => r.id as string)))
-  }
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
-  }
-
-  const handleSort = (field: string) => {
-    if (sortBy === field) setSortOrder(p => p === 'asc' ? 'desc' : 'asc')
-    else { setSortBy(field); setSortOrder('asc') }
-    setPage(1)
-  }
-
-  const totalPages = Math.max(1, Math.ceil(data.total / 20))
-
-  const tableColumns = [
+  const tableColumns = useMemo(() => [
     {
       key: '_select', label: '',
       headerRender: () => (
-        <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelectAll() }}>
+        <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelectAll(data.items.map(r => r.id)) }}>
           {selectedIds.size === data.items.length && data.items.length > 0
             ? <CheckSquare size={16} className="text-[var(--primary)]" />
             : <Square size={16} className="text-[var(--text-muted)]" />}
         </button>
       ),
-      render: (row: Record<string, unknown>) => (
-        <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelect(row.id as string) }}>
-          {selectedIds.has(row.id as string)
+      render: (row: SAMRecord) => (
+        <button className="p-0.5" onClick={e => { e.stopPropagation(); toggleSelect(row.id) }}>
+          {selectedIds.has(row.id)
             ? <CheckSquare size={16} className="text-[var(--primary)]" />
             : <Square size={16} className="text-[var(--text-muted)]" />}
         </button>
@@ -191,17 +118,21 @@ export default function SAMDataPage() {
           {col.label} <SortIcon sortBy={sortBy} sortOrder={sortOrder} field={col.key} />
         </button>
       ) : undefined,
-      render: col.render || ((row: Record<string, unknown>) => <span className="text-[12px]">{String(row[col.key] ?? '-')}</span>),
+      render: col.render || ((row: SAMRecord) => <span className="text-[12px]">{String((row as unknown as Record<string, unknown>)[col.key] ?? '-')}</span>),
     })),
     {
       key: 'actions', label: '',
-      render: (row: Record<string, unknown>) => (
+      render: (row: SAMRecord) => (
         <Link href={`/sam-data/${row.id}`} className="p-1 hover:bg-[var(--content-bg)] rounded" onClick={e => e.stopPropagation()}>
           <Eye size={16} className="text-[var(--text-muted)]" />
         </Link>
       )
     },
-  ]
+  ], [toggleSelectAll, toggleSelect, handleSort, selectedIds, data.items, sortBy, sortOrder])
+
+  const handleRowClick = useCallback((row: unknown) => {
+    router.push(`/sam-data/${(row as SAMRecord).id}`)
+  }, [router])
 
   return (
     <div>
@@ -211,9 +142,9 @@ export default function SAMDataPage() {
         <div className="flex gap-2">
           <button onClick={() => setTransferModalOpen(true)} disabled={data.total === 0}
             className="flex items-center gap-2 matdash-btn matdash-btn-outline px-3 py-1.5 rounded-md text-[11px] disabled:opacity-50 transition-colors">
-            <ArrowRightLeft size={16} /> Transfer
+            <ArrowRightLeft size={16} /> Transfer {selectedIds.size > 0 ? `(${selectedIds.size})` : 'All'}
           </button>
-          <button onClick={handleExportCSV} disabled={exporting || data.total === 0}
+          <button onClick={() => handleExportCSV(debouncedSearch, sortBy, sortOrder)} disabled={exporting || data.total === 0}
             className="flex items-center gap-2 matdash-btn matdash-btn-outline px-3 py-1.5 rounded-md text-[11px] disabled:opacity-50 transition-colors">
             <FileSpreadsheet size={16} /> {exporting ? 'Exporting...' : 'Export CSV'}
           </button>
@@ -229,8 +160,8 @@ export default function SAMDataPage() {
 
       <BulkActions
         selectedCount={selectedIds.size}
-        onClearSelection={() => setSelectedIds(new Set())}
-        onExportSelected={handleExportSelected}
+        onClearSelection={clearSelection}
+        onExportSelected={() => handleExportSelected(selectedItems)}
         onDeleteSelected={() => setShowDeleteConfirm(true)}
         onTransferSelected={() => setTransferModalOpen(true)}
         onEmailSelected={() => setEmailModalOpen(true)}
@@ -245,9 +176,9 @@ export default function SAMDataPage() {
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="w-full pl-9 pr-3 py-2 border border-[var(--border-color)] rounded-md text-[12px] bg-[var(--content-bg)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30" />
           </div>
-          <button onClick={() => fileInputRef.current?.click()} disabled={importing}
+          <button onClick={() => fileInputRef.current?.click()} disabled={progress.status === 'importing'}
             className="flex items-center gap-2 matdash-btn matdash-btn-success px-4 py-2 rounded-md text-[12px] font-medium disabled:opacity-50 transition-colors shadow-sm">
-            {importing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />} Import CSV
+            {progress.status === 'importing' ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />} Import CSV
           </button>
           <div className="ml-auto">
             <button onClick={() => selectedIds.size > 0 ? setShowDeleteConfirm(true) : setShowDeleteAllConfirm(true)} disabled={data.total === 0}
@@ -260,9 +191,20 @@ export default function SAMDataPage() {
 
       {error && <div className="bg-red-500/10 text-[var(--danger)] p-2 rounded-md text-[11px] mb-3 border border-red-500/20">{error}</div>}
 
+      <ImportProgress
+        status={progress.status}
+        imported={progress.imported}
+        total={progress.total}
+        percent={progress.percent}
+        skipped={progress.skipped}
+        error={progress.error}
+        onCancel={cancelImport}
+        onDismiss={resetImport}
+      />
+
       {loading ? <TableSkeleton rows={5} cols={COLUMNS.length + 1} /> : (
         <>
-          <DataTable columns={tableColumns} data={data.items} onRowClick={row => router.push(`/sam-data/${row.id}`)} />
+          <DataTable columns={tableColumns as unknown as { key: string; label: string; headerRender?: () => React.ReactNode; render?: (row: unknown) => React.ReactNode }[]} data={data.items as unknown as Record<string, unknown>[]} onRowClick={handleRowClick} />
 
           <div className="flex items-center justify-between mt-4 text-[11px] text-[var(--text-muted)]">
             <span className="font-medium">Showing {data.items.length} of {data.total} records</span>
@@ -285,8 +227,8 @@ export default function SAMDataPage() {
       <TransferModal
         open={transferModalOpen}
         onClose={() => setTransferModalOpen(false)}
-        records={selectedRecords}
-        onComplete={() => { setSelectedIds(new Set()); fetchData() }}
+        records={selectedRecords.length > 0 ? selectedRecords : data.items}
+        onComplete={() => { clearSelection(); fetchData() }}
       />
 
       <EmailModal
@@ -301,7 +243,7 @@ export default function SAMDataPage() {
         open={complianceModalOpen}
         onClose={() => setComplianceModalOpen(false)}
         records={selectedRecords}
-        onComplete={() => { setSelectedIds(new Set()); fetchData() }}
+        onComplete={() => { clearSelection(); fetchData() }}
       />
     </div>
   )

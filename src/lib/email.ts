@@ -24,7 +24,7 @@ export async function sendEmail(opts: SendEmailOpts): Promise<{ messageId: strin
   const subject = staging ? `[CMS REVIEW DRAFT] ${opts.subject}` : opts.subject
 
   const info = await transporter.sendMail({
-    from: opts.from || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@intaerobase.com',
+    from: opts.from || process.env.SMTP_FROM || process.env.SMTP_USER || '',
     to,
     cc: opts.cc || undefined,
     bcc: opts.bcc || undefined,

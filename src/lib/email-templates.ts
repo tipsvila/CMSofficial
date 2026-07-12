@@ -29,12 +29,12 @@ function co(data: TemplateData): string {
 
 async function corporateSignature(): Promise<string> {
   const s = await getCompanySettings()
-  const name = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const name = escapeHtml(s.companyName as string || '')
   const phone = s.phone ? ` <strong>Phone:</strong> ${escapeHtml(s.phone as string)}` : ''
   const phoneAlt = s.phoneAlt ? ` | ${escapeHtml(s.phoneAlt as string)}` : ''
   const web = s.website ? `<br/><strong>Web:</strong> <a href="${escapeHtml(s.website as string)}" style="color:#2563eb">${escapeHtml(s.website as string)}</a>` : ''
   const emailAddr = s.email ? `<br/><strong>Email:</strong> <a href="mailto:${escapeHtml(s.email as string)}" style="color:#2563eb">${escapeHtml(s.email as string)}</a>` : ''
-  const tagline = escapeHtml(s.tagline as string || 'Aviation Federal Contract Management')
+  const tagline = escapeHtml(s.tagline as string || '')
 
   return `
 <hr style="border:0; border-top: 1px solid #eee; margin: 20px 0;" />
@@ -52,7 +52,7 @@ async function corporateSignature(): Promise<string> {
 
 async function emailShell(title: string, bodyHtml: string): Promise<{ subject: string; html: string }> {
   const s = await getCompanySettings()
-  const name = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const name = escapeHtml(s.companyName as string || '')
   const tagline = escapeHtml(s.tagline as string || '')
   const logoUrl = escapeHtml((s.logoUrl as string) || '/logo.svg')
 
@@ -98,14 +98,12 @@ async function capabilityStatementTemplate(data: TemplateData) {
   const company = co(data)
   const ids = await companyDetails()
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>${name}</p>
 
 <p>I am reaching out from <strong>${cName}</strong> regarding potential vendor integration and subcontracting opportunities specifically supporting ${company}'s active aviation programs.</p>
-
-<p>We are currently in our operational foundation phase, actively finalizing our local Compliance CMS architecture to handle high-volume government contract compliance, precision sourcing, and IT-Enabled Services (ITeS). To ensure seamless data mapping into prime contractor pipelines like yours, our organization maintains absolute regulatory transparency:</p>
 
 <table cellpadding="8" cellspacing="0" style="width:100%;margin:16px 0;font-size:13px">
   <tr>
@@ -145,7 +143,7 @@ async function followUpTemplate(data: TemplateData) {
   const name = greet(data)
   const company = co(data)
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>${name}</p>
@@ -194,7 +192,7 @@ async function capabilityFollowUpTemplate(data: TemplateData) {
   const company = co(data)
   const ids = await companyDetails()
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>${name}</p>
@@ -246,7 +244,7 @@ interface RfqEmailData {
 
 async function rfqPublishedTemplate(data: RfqEmailData) {
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>Dear ${escapeHtml(data.contractorName)},</p>
@@ -310,7 +308,7 @@ interface QuoteEmailData {
 
 async function quoteReceivedTemplate(data: QuoteEmailData) {
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>Dear Procurement Team,</p>
@@ -350,7 +348,7 @@ async function quoteReceivedTemplate(data: QuoteEmailData) {
 
 async function quoteAcceptedTemplate(data: { rfqNumber: string; contractorName: string; partNumber: string }) {
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>Dear ${escapeHtml(data.contractorName)},</p>
@@ -366,7 +364,7 @@ async function quoteAcceptedTemplate(data: { rfqNumber: string; contractorName: 
 
 async function quoteRejectedTemplate(data: { rfqNumber: string; contractorName: string; partNumber: string }) {
   const s = await getCompanySettings()
-  const cName = escapeHtml(s.companyName as string || 'INTAEROBASE')
+  const cName = escapeHtml(s.companyName as string || '')
 
   const body = `
 <p>Dear ${escapeHtml(data.contractorName)},</p>

@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { client } from '@/lib/db'
 
-// ponytail: single source of truth for CSV parsing — was copy-pasted 6 times
+const CSV_CHUNK_SIZE = 500
+
+// ponytail: our parseCSV handles RFC 4180 — quoted commas, escaped quotes, multi-line fields
+// row.slice() needed because row is reused — push(ref) + length=0 mutates all prior rows
 function parseCSV(text: string): string[][] {
+  // strip BOM (Excel exports often include it)
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1)
   const rows: string[][] = []
   let current = ''
   let inQuotes = false
@@ -20,13 +25,13 @@ function parseCSV(text: string): string[][] {
       else if (ch === '\n' || ch === '\r') {
         if (ch === '\r' && text[i + 1] === '\n') i++
         row.push(current); current = ''
-        if (row.length > 0 && row.some(c => c.trim())) rows.push(row)
+        if (row.length > 0 && row.some(c => c.trim())) rows.push(row.slice())
         row.length = 0
       } else current += ch
     }
   }
   row.push(current)
-  if (row.length > 0 && row.some(c => c.trim())) rows.push(row)
+  if (row.length > 0 && row.some(c => c.trim())) rows.push(row.slice())
   return rows
 }
 
@@ -400,7 +405,7 @@ export function createCrudHandlers(config: CrudConfig) {
     }
   }
 
-  // ─── POST import ───
+  // ─── POST import (handles duplicates via INSERT OR REPLACE) ───
   async function handleImport(request: Request) {
     if (!importConfig) {
       return NextResponse.json({ error: 'Import not supported' }, { status: 404 })
@@ -412,42 +417,43 @@ export function createCrudHandlers(config: CrudConfig) {
       if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
 
       const text = await file.text()
-      const rows = parseCSV(text)
-      if (rows.length < 2) return NextResponse.json({ error: 'CSV must have a header row and at least one data row' }, { status: 400 })
+      const allRows = parseCSV(text)
+      if (allRows.length < 2) return NextResponse.json({ error: 'CSV must have a header row and at least one data row' }, { status: 400 })
 
-      const headers = rows[0].map(h => h.trim().toLowerCase())
+      const headers = allRows[0].map(h => h.trim().toLowerCase())
 
-      // Validate required headers
       for (const [keyword, msg] of Object.entries(importConfig.requiredHeaders)) {
         if (!headers.some(h => h.includes(keyword))) {
           return NextResponse.json({ error: msg }, { status: 400 })
         }
       }
 
-      // Resolve header indices
       const fieldIndices: Record<string, number> = {}
       for (const [field, keywords] of Object.entries(importConfig.headerKeywords)) {
         fieldIndices[field] = headers.findIndex(h => keywords.some(k => h.includes(k) || h === k))
       }
 
+      const totalRows = allRows.length - 1 // minus header
+
+      // ponytail: process import synchronously, return JSON result
+      // SSE progress was causing stream closure issues — simpler JSON response works for all callers
       const now = new Date().toISOString()
       let imported = 0
+      let skipped = 0
 
-      for (let i = 1; i < rows.length && i <= 10000; i++) {
-        const row = rows[i]
-        if (row.length < 1) continue
+      for (let i = 1; i < allRows.length; i++) {
+        const row = allRows[i]
+        if (row.length < 1) { skipped++; continue }
 
-        // Validate required fields
         let valid = true
         for (const field of importConfig.requiredFields) {
           const idx = fieldIndices[field]
           if (idx === -1 || !row[idx]?.trim()) { valid = false; break }
         }
-        if (!valid) continue
+        if (!valid) { skipped++; continue }
 
         const body: Record<string, unknown> = { ...importConfig.defaults }
 
-        // Resolve contractor ID
         if (importConfig.contractorMatch) {
           const cm: { csvField: string; entityField: string; fallbackToFirst?: boolean } = importConfig.contractorMatch
           const cmIdx = fieldIndices[cm.csvField]
@@ -462,12 +468,11 @@ export function createCrudHandlers(config: CrudConfig) {
           if (!contractorId && cm.fallbackToFirst) {
             const fallback = await client.execute('SELECT id FROM contractors WHERE is_active = 1 LIMIT 1')
             if (fallback.rows.length > 0) contractorId = fallback.rows[0].id as string
-            else continue
+            else { skipped++; continue }
           }
           if (contractorId) body[cm.entityField] = contractorId
         }
 
-        // Map CSV fields to body
         for (const [field] of Object.entries(importConfig.headerKeywords)) {
           if (field === importConfig.contractorMatch?.csvField) continue
           const idx = fieldIndices[field]
@@ -476,19 +481,19 @@ export function createCrudHandlers(config: CrudConfig) {
           }
         }
 
-        // Custom insert or standard
         if (importConfig.customInsert) {
           const custom = await importConfig.customInsert(row, headers, now)
           if (custom) {
             await client.execute({ sql: custom.sql, args: custom.args })
           }
         } else {
+          // Use INSERT OR REPLACE to handle duplicates — reactivates inactive records
           const id = generateId ? generateId() : crypto.randomUUID()
           const cols = [...insertColumns, 'is_active', 'created_at', 'updated_at']
           const vals = await Promise.resolve(insertMapper(body, id, now))
           const placeholders = cols.map(() => '?').join(', ')
           await client.execute({
-            sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`,
+            sql: `INSERT OR REPLACE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`,
             args: [id, ...vals, 1, now, now],
           })
         }
